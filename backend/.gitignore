@@ -8,6 +8,9 @@ venv/
 .env/
 .venv/
 
+# Environment variables
+.env
+
 # Distribution / packaging
 build/
 dist/
