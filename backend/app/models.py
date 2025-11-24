@@ -118,6 +118,10 @@ class Metrics(BaseModel):
                 "topTopics": [
                     {"topic": "doctor", "count": 12},
                     {"topic": "wait time", "count": 8}
+                ],
+                "topicTrends": [
+                    {"date": "2025-11-24", "doctor": 5, "wait time": 3},
+                    {"date": "2025-11-25", "doctor": 7, "wait time": 5}
                 ]
             }
         }
@@ -126,3 +130,4 @@ class Metrics(BaseModel):
     sentimentDistribution: dict[str, int]
     submissionsByHour: list[HourCount]
     topTopics: list[TopicCount]
+    topicTrends: list[dict]
