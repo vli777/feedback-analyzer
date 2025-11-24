@@ -36,21 +36,10 @@ def normalize_topics(raw):
 
 async def analyze_feedback(text: str) -> dict:
     try:
-        # Using NVIDIA responses API
-        response = client.responses.create(
-            model="openai/gpt-oss-20b",
-            input=ANALYSIS_PROMPT(text),
-            max_output_tokens=512,
-            temperature=0.2,
-            top_p=0.7,
-            stream=True
-        )
-
-        # Collect output from streaming response
+        # Using ChatNVIDIA streaming API
         output_text = ""
-        for chunk in response:
-            if chunk.type == "response.output_text.delta":
-                output_text += chunk.delta
+        for chunk in client.stream([{"role": "user", "content": ANALYSIS_PROMPT(text)}]):
+            output_text += chunk.content
 
         output = output_text.strip()
 
