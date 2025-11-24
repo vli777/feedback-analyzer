@@ -92,24 +92,35 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
   }
 
   if (type === "topics") {
-    const sortedTopics = [...metrics.topTopics].sort((a, b) => b.count - a.count || a.topic.localeCompare(b.topic));
+    const sortedTopics = [...metrics.topTopics].sort((a, b) => b.count - a.count);
+
+    if (sortedTopics.length === 0) {
+      return (
+        <div className="text-sm text-slate-500">
+          Topic trends will appear after you submit some feedback.
+        </div>
+      );
+    }
 
     return (
-      <div>
-        {sortedTopics.length === 0 ? (
-          <p className="text-sm text-slate-500">No topics yet.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-2 text-sm">
-            {sortedTopics.map((t) => (
-              <li
-                key={t.topic}
-                className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
-              >
-                {t.topic} <span className="font-semibold">({t.count})</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="h-full w-full flex items-center justify-center">
+        <ResponsiveContainer width="100%" height="100%" maxHeight={300}>
+          <BarChart
+            data={sortedTopics}
+            layout="vertical"
+            margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+          >
+            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+            <YAxis
+              type="category"
+              dataKey="topic"
+              tick={{ fontSize: 11 }}
+              width={100}
+            />
+            <Tooltip />
+            <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     );
   }

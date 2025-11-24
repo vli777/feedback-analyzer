@@ -30,6 +30,7 @@ export interface Metrics {
   };
   submissionsByHour: { hour: number; count: number }[];
   topTopics: { topic: string; count: number }[];
+  topicTrends: Array<{ date: string; [topic: string]: string | number }>;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
