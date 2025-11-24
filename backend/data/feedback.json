@@ -1,0 +1,25 @@
+[
+  {
+    "id": "b0a761ef-9b27-459f-96a8-12ac28acf6eb",
+    "text": "i had a pleasant visit",
+    "userId": null,
+    "sentiment": "positive",
+    "keyTopics": [],
+    "actionRequired": false,
+    "summary": "pleasant visit",
+    "createdAt": "2025-11-24T07:09:27.181620"
+  },
+  {
+    "id": "3e955e56-2ed7-46ba-9d9d-9da28191eee7",
+    "text": "wait times were low and the doctor seemed to care about the patient. i'm not sure about insurance though",
+    "userId": null,
+    "sentiment": "positive",
+    "keyTopics": [
+      "wait times",
+      "doctor care"
+    ],
+    "actionRequired": false,
+    "summary": "Patient had a positive experience, but had concerns about insurance.",
+    "createdAt": "2025-11-24T07:09:53.462865"
+  }
+]
