@@ -1,5 +1,8 @@
 # Patient Feedback Analysis – Engineering Decision Summary
 
+<img width="1965" height="1120" alt="image" src="https://github.com/user-attachments/assets/9a6c9f0a-c59f-4d92-b7e0-0c0907afb852" />
+
+
 ## Core Feature Prioritization
 
 The primary value proposition for this proof-of-concept is the LLM-driven feedback analysis workflow. Given limited time, I prioritized:
