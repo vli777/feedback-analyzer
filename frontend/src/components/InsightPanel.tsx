@@ -20,15 +20,16 @@ export default function InsightPanel({ record }: InsightPanelProps) {
 
   return (
     <div className="text-sm space-y-4">
-      {/* Original Submission */}
-      {isFull && "text" in record && (
-        <div>
-          <p className="font-semibold text-slate-700 mb-1">Original Submission:</p>
-          <p className="text-slate-600 p-3 bg-slate-50 rounded-lg border border-slate-200">
-            {record.text}
-          </p>
-        </div>
-      )}
+      {/* Submission Time */}
+      <div>
+        <p className="font-semibold text-slate-700 mb-1">Submitted:</p>
+        <p className="text-slate-600">
+          {new Date(record.createdAt).toLocaleString("en-US", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
+        </p>
+      </div>
 
       {/* Summary */}
       {"summary" in record && (
@@ -41,11 +42,15 @@ export default function InsightPanel({ record }: InsightPanelProps) {
       {/* Sentiment */}
       <div>
         <p className="font-semibold text-slate-700 mb-1">Sentiment:</p>
-        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-          record.sentiment === "positive" ? "bg-green-100 text-green-700" :
-          record.sentiment === "negative" ? "bg-red-100 text-red-700" :
-          "bg-slate-100 text-slate-700"
-        }`}>
+        <span
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+            record.sentiment === "positive"
+              ? "bg-green-100 text-green-700"
+              : record.sentiment === "negative"
+              ? "bg-red-100 text-red-700"
+              : "bg-slate-100 text-slate-700"
+          }`}
+        >
           {record.sentiment.charAt(0).toUpperCase() + record.sentiment.slice(1)}
         </span>
       </div>
@@ -75,24 +80,29 @@ export default function InsightPanel({ record }: InsightPanelProps) {
       {isFull && (
         <div>
           <p className="font-semibold text-slate-700 mb-1">Action Required:</p>
-          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-            record.actionRequired ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-700"
-          }`}>
+          <span
+            className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+              record.actionRequired
+                ? "bg-orange-100 text-orange-700"
+                : "bg-slate-100 text-slate-700"
+            }`}
+          >
             {record.actionRequired ? "Yes" : "No"}
           </span>
         </div>
       )}
 
-      {/* Submission Time */}
-      <div>
-        <p className="font-semibold text-slate-700 mb-1">Submitted:</p>
-        <p className="text-slate-600">
-          {new Date(record.createdAt).toLocaleString("en-US", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </p>
-      </div>
+      {/* Original Submission */}
+      {isFull && "text" in record && (
+        <div>
+          <p className="font-semibold text-slate-700 mb-1">
+            Original Submission:
+          </p>
+          <p className="text-slate-600 p-3 bg-slate-50 rounded-lg border border-slate-200">
+            {record.text}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
