@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -9,6 +10,7 @@ from .models import (
     FeedbackCreateResponse,
     FeedbackRecord,
     HistoryItem,
+    Metrics,
 )
 from .storage import read_all_feedback, append_feedback
 from .analyze_pipeline import analyze_feedback
@@ -32,6 +34,17 @@ def read_root():
 
 @app.post("/api/v1/feedback", response_model=FeedbackCreateResponse)
 async def create_feedback(payload: FeedbackCreateRequest):
+    """
+    Submit feedback for AI analysis.
+
+    Analyzes the submitted feedback text using an LLM to extract:
+    - Sentiment (positive/neutral/negative)
+    - Key topics mentioned
+    - Whether action is required
+    - A concise summary
+
+    The analyzed feedback is stored and returned with a unique ID.
+    """
     text = payload.text.strip()
     if not text:
         raise HTTPException(400, "Text required")
@@ -53,8 +66,14 @@ async def create_feedback(payload: FeedbackCreateRequest):
     return {"record": record}
 
 
-@app.get("/api/v1/history")
+@app.get("/api/v1/history", response_model=List[HistoryItem])
 def history():
+    """
+    Get all feedback submissions.
+
+    Returns a list of all submitted feedback entries sorted by creation date
+    (newest first). Each entry includes the ID, summary, timestamp, and sentiment.
+    """
     records = read_all_feedback()
     sorted_records = sorted(records, key=lambda r: r.createdAt, reverse=True)
     return [
@@ -69,6 +88,14 @@ def history():
     ]
 
 
-@app.get("/api/v1/metrics")
+@app.get("/api/v1/metrics", response_model=Metrics)
 def metrics():
+    """
+    Get analytics metrics across all feedback.
+
+    Returns aggregated metrics including:
+    - **Sentiment Distribution**: Count of positive/neutral/negative feedback
+    - **Submissions by Hour**: 24-hour breakdown of when feedback was submitted
+    - **Top Topics**: Most frequently mentioned topics across all feedback
+    """
     return compute_metrics(read_all_feedback())
