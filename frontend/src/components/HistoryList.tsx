@@ -31,7 +31,7 @@ export default function HistoryList({ title, history, onSelect }: HistoryListPro
               }}
               className="flex items-start gap-3 py-2 px-1 hover:bg-slate-50 transition cursor-pointer border-b border-slate-200 last:border-b-0"
             >
-              <span className="text-xs text-slate-500 whitespace-nowrap flex-shrink-0 pt-0.5">
+              <span className="text-xs text-slate-500 whitespace-nowrap shrink-0 pt-0.5">
                 {new Date(h.createdAt).toLocaleString('en-US', {
                   month: 'short',
                   day: 'numeric',
