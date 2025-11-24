@@ -16,7 +16,7 @@ export default function HistoryList({ title, history, onSelect }: HistoryListPro
           No feedback yet. Submit something to get started.
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col">
           {history.map((h) => (
             <div
               key={h.id}
@@ -29,12 +29,17 @@ export default function HistoryList({ title, history, onSelect }: HistoryListPro
                   onSelect(h);
                 }
               }}
-              className="w-full text-left border rounded-md px-2 py-2 bg-white hover:bg-slate-50 transition cursor-pointer"
+              className="flex items-start gap-3 py-2 px-1 hover:bg-slate-50 transition cursor-pointer border-b border-slate-200 last:border-b-0"
             >
-              <p className="text-sm font-medium line-clamp-2">{h.summary}</p>
-              <p className="text-xs text-slate-500 mt-1">
-                {h.sentiment} · {new Date(h.createdAt).toLocaleString()}
-              </p>
+              <span className="text-xs text-slate-500 whitespace-nowrap flex-shrink-0 pt-0.5">
+                {new Date(h.createdAt).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
+              <p className="text-sm flex-1 line-clamp-2">{h.summary}</p>
             </div>
           ))}
         </div>
