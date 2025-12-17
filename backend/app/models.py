@@ -16,7 +16,7 @@ class FeedbackAnalysis(BaseModel):
     sentiment: Sentiment
     key_topics: List[str] = Field(description="Key topics or themes identified in the feedback")
     action_required: bool = Field(description="Whether this feedback requires follow-up action")
-    summary: str = Field(description="Brief summary of the feedback")
+    summary: str = Field(description="A complete sentence or natural language phrase (about at least 5-7 words) summarizing the feedback")
 
 
 class BatchFeedbackAnalysis(BaseModel):

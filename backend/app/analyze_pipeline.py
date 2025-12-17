@@ -5,7 +5,9 @@ from .models import Sentiment, FeedbackAnalysis, BatchFeedbackAnalysis
 def ANALYSIS_PROMPT(feedback: str) -> str:
     return f"""You are analyzing user feedback.
 
-Analyze the sentiment, identify key topics, determine if action is required, and provide a brief summary.
+Analyze the sentiment, identify key topics, determine if action is required, and provide a summary.
+
+IMPORTANT: The summary must be a complete, natural language sentence or phrase (about at least 5-7 words), not just 1-3 words.
 
 Feedback:
 \"\"\"{feedback}\"\"\"""".strip()
@@ -21,7 +23,9 @@ Analyze these {len(feedbacks)} feedback entries in the EXACT same order:
 
 {feedback_items}
 
-For each feedback, analyze the sentiment, identify key topics, determine if action is required, and provide a brief summary.""".strip()
+For each feedback, analyze the sentiment, identify key topics, determine if action is required, and provide a summary.
+
+IMPORTANT: Each summary must be a complete, natural language sentence or phrase (about at least 5-7 words), not just 1-3 words.""".strip()
 
 
 def normalize_topics(raw):
