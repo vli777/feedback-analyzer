@@ -6,7 +6,7 @@
     "sentiment": "positive",
     "keyTopics": [],
     "actionRequired": false,
-    "summary": "pleasant visit",
+    "summary": "Patient reported pleasant experience at clinic",
     "createdAt": "2025-11-24T07:09:27.181620"
   },
   {
@@ -44,7 +44,7 @@
       "great service"
     ],
     "actionRequired": false,
-    "summary": "Great service",
+    "summary": "Patient praised quality of service received",
     "createdAt": "2025-12-09T17:02:29.565082"
   },
   {
@@ -56,7 +56,7 @@
       "poor quality"
     ],
     "actionRequired": false,
-    "summary": "Poor quality",
+    "summary": "Patient expressed dissatisfaction with service quality",
     "createdAt": "2025-12-09T17:02:29.565082"
   },
   {
@@ -69,7 +69,7 @@
       "prescription refill"
     ],
     "actionRequired": false,
-    "summary": "Routine visit",
+    "summary": "Patient completed annual check-up at clinic",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -82,7 +82,7 @@
       "appointment"
     ],
     "actionRequired": false,
-    "summary": "Discussion",
+    "summary": "Patient discussed headache concerns with doctor",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -95,7 +95,7 @@
       "quick visit"
     ],
     "actionRequired": false,
-    "summary": "Quick visit",
+    "summary": "Quick visit for prescription refill",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -108,7 +108,7 @@
       "fever"
     ],
     "actionRequired": false,
-    "summary": "Consultation",
+    "summary": "Parent seeking pediatric care for child's fever",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -121,7 +121,7 @@
       "heart rate"
     ],
     "actionRequired": false,
-    "summary": "Consultation",
+    "summary": "Vital signs checked during consultation",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -134,7 +134,7 @@
       "fatigue"
     ],
     "actionRequired": false,
-    "summary": "Consultation",
+    "summary": "Patient reported cough and fatigue symptoms",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -147,7 +147,7 @@
       "antibiotics"
     ],
     "actionRequired": false,
-    "summary": "Diagnosis",
+    "summary": "Minor infection diagnosed, antibiotics prescribed",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -160,7 +160,7 @@
       "testing"
     ],
     "actionRequired": false,
-    "summary": "Procedure",
+    "summary": "Blood sample taken for laboratory testing",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -173,7 +173,7 @@
       "clinic visit"
     ],
     "actionRequired": false,
-    "summary": "Procedure",
+    "summary": "Patient received injection during clinic visit",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -186,7 +186,7 @@
       "referral"
     ],
     "actionRequired": false,
-    "summary": "Referral",
+    "summary": "Patient referred to dermatology specialist",
     "createdAt": "2025-12-09T17:02:45.254133"
   },
   {
@@ -199,7 +199,7 @@
       "doctor"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient scheduled upcoming specialist appointment",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -212,7 +212,7 @@
       "office"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient waited for their turn",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -225,7 +225,7 @@
       "follow-up"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient received diagnosis and follow-up instructions",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -238,7 +238,7 @@
       "year"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient had annual physical examination",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -251,7 +251,7 @@
       "overnight"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Overnight observation required",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -264,7 +264,7 @@
       "relief"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient relieved by normal test results",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -277,7 +277,7 @@
       "visit"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Follow-up visit scheduled",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -290,7 +290,7 @@
       "injury"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "X-ray recommended for ankle injury",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -303,7 +303,7 @@
       "appointment"
     ],
     "actionRequired": true,
-    "summary": "none",
+    "summary": "Patient needs to schedule GP appointment",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -316,7 +316,7 @@
       "health"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Doctor advised smoking cessation",
     "createdAt": "2025-12-09T17:02:51.788760"
   },
   {
@@ -329,7 +329,7 @@
       "prescription refill"
     ],
     "actionRequired": false,
-    "summary": " routine visit",
+    "summary": "Patient completed annual check-up at clinic",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -342,7 +342,7 @@
       "appointment"
     ],
     "actionRequired": false,
-    "summary": " discussion",
+    "summary": "Patient discussed headache concerns with doctor",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -355,7 +355,7 @@
       "quick visit"
     ],
     "actionRequired": false,
-    "summary": " quick visit",
+    "summary": "Quick visit for prescription refill",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -368,7 +368,7 @@
       "pediatrician"
     ],
     "actionRequired": false,
-    "summary": " fever",
+    "summary": "Parent seeking pediatric care for child's fever",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -381,7 +381,7 @@
       "heart rate"
     ],
     "actionRequired": false,
-    "summary": " consultation",
+    "summary": "Vital signs checked during consultation",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -394,7 +394,7 @@
       "fatigue"
     ],
     "actionRequired": false,
-    "summary": " symptoms",
+    "summary": "Patient reported cough and fatigue symptoms",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -407,7 +407,7 @@
       "antibiotics"
     ],
     "actionRequired": false,
-    "summary": " diagnosis",
+    "summary": "Minor infection diagnosed, antibiotics prescribed",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -420,7 +420,7 @@
       "testing"
     ],
     "actionRequired": false,
-    "summary": " testing",
+    "summary": "Blood sample taken for laboratory testing",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -433,7 +433,7 @@
       "clinic visit"
     ],
     "actionRequired": false,
-    "summary": " injection",
+    "summary": "Patient received injection during clinic visit",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -446,7 +446,7 @@
       "referral"
     ],
     "actionRequired": false,
-    "summary": " referral",
+    "summary": "Patient referred to dermatology specialist",
     "createdAt": "2025-12-09T17:03:07.418856"
   },
   {
@@ -459,7 +459,7 @@
       "doctor"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient scheduled upcoming specialist appointment",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -472,7 +472,7 @@
       "office"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient waited for their turn",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -485,7 +485,7 @@
       "follow-up"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient received diagnosis and follow-up instructions",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -498,7 +498,7 @@
       "year"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient had annual physical examination",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -511,7 +511,7 @@
       "visit"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Overnight observation required",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -524,7 +524,7 @@
       "relief"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Patient relieved by normal test results",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -537,7 +537,7 @@
       "visit"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Follow-up visit scheduled",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -550,7 +550,7 @@
       "injury"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "X-ray recommended for ankle injury",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -563,7 +563,7 @@
       "practitioner"
     ],
     "actionRequired": true,
-    "summary": "none",
+    "summary": "Patient needs to schedule GP appointment",
     "createdAt": "2025-12-09T17:03:13.928378"
   },
   {
@@ -576,7 +576,7 @@
       "health"
     ],
     "actionRequired": false,
-    "summary": "none",
+    "summary": "Doctor advised smoking cessation",
     "createdAt": "2025-12-09T17:03:13.928378"
   }
 ]
