@@ -1,174 +1,139 @@
-# Patient Feedback Analysis – Engineering Decision Summary
+# Feedback Analyzer
+
+An intelligent feedback analysis platform that uses Large Language Models to automatically analyze, categorize, and extract insights from user feedback.
 
 <img width="1965" height="1120" alt="image" src="https://github.com/user-attachments/assets/9a6c9f0a-c59f-4d92-b7e0-0c0907afb852" />
 
+## Features
 
-## Core Feature Prioritization
+- **Automated Sentiment Analysis**: Automatically classifies feedback as positive, neutral, or negative using LLM-powered analysis
+- **Topic Extraction**: Identifies and extracts key topics and themes from feedback text
+- **Action Detection**: Flags feedback that requires follow-up or immediate attention
+- **Smart Summaries**: Generates concise, natural language summaries using Pydantic-based structured outputs
+- **Bulk Upload**: Process multiple feedback entries efficiently in a single batch operation
+- **Analytics Dashboard**: Visualize sentiment distribution, topic trends, and submission patterns over time
+- **Historical Records**: Browse and search through all analyzed feedback with detailed breakdowns
 
-The primary value proposition for this proof-of-concept is the LLM-driven feedback analysis workflow. Given limited time, I prioritized:
+## Tech Stack
 
-- Getting the reasoning/analysis LLM pipeline fully functional
-- Ensuring the feedback → analysis → insight loop was stable
-- Returning structured JSON reliably for downstream UI and metrics computations
+**Backend:**
+- FastAPI (Python web framework)
+- LangChain with NVIDIA AI Endpoints
+- Pydantic for structured data validation and LLM outputs
 
-This enabled us to validate the core experience early without investing in peripheral concerns prematurely (authentication, database setup, etc.).
+**Frontend:**
+- React + TypeScript
+- Vite (build tool)
+- Chart.js for data visualization
 
----
+## Architecture Overview
 
-## Model Selection & Safety Tradeoffs
+The system follows a straightforward client-server architecture:
 
-### Initial Approach
+1. **User submits feedback** via the web interface (single or bulk upload)
+2. **Backend API** receives the feedback and routes it to the LLM analysis pipeline
+3. **LLM processes the text** using Pydantic-based structured outputs to ensure type-safe responses
+4. **Analysis results** are validated, stored, and returned to the client
+5. **Dashboard displays** real-time metrics and visualizations based on analyzed feedback
 
-The initial plan was to run:
+### LLM Integration
 
-- A dedicated analysis model
-- A separate trust & safety checker
-- A fallback QC step for JSON validation
+The application uses a single-call LLM pipeline powered by NVIDIA AI Endpoints with LangChain:
 
-This would mirror a production-grade multi-model pipeline but adds latency, complexity, and infrastructure overhead.
+- **Structured Outputs**: Pydantic models define the exact schema for sentiment, topics, action flags, and summaries
+- **Type Safety**: LangChain's `with_structured_output()` method ensures responses conform to expected types
+- **Batch Processing**: Efficient bulk analysis for processing multiple feedback entries simultaneously
+- **Built-in Safety**: The model includes content safety features appropriate for handling user-generated content
 
-### Consolidation to a Single LLM Call
+### Data Storage
 
-For the PoC, I collapsed the architecture into a single LLM call using NVIDIA’s OSS-aligned, OpenAI-compatible model (`openai/gpt-oss-20b`). This model includes built-in safety behavior, which removed the need for a fully separate moderation stage for this phase.
+The current implementation uses a JSON file-based storage system (`feedback.json`) for simplicity:
 
-**Reasons for this choice:**
+- **Fast prototyping**: No database setup required
+- **Easy debugging**: Data is human-readable and easily inspectable
+- **Sufficient for demos**: In-memory operations are fast for moderate datasets
 
-- Reduced latency and implementation complexity
-- No extra finetuned trust/safety model to provision and operate
-- Removed multi-call orchestration and JSON drift between calls
-- Safety guarantees from the model are sufficient for an internal prototype / demo
+**Production Considerations:**
+- For production use, migrate to a relational database (PostgreSQL/SQLite) for better concurrency, indexing, and scalability
+- Add database indices on frequently queried fields (timestamp, sentiment, topics)
+- Implement proper data retention and backup policies
 
-The result is a predictable, single-step analysis pipeline that is easier to maintain and straightforward to extend later if we decide to reintroduce a separate safety layer.
+## Getting Started
 
----
+### Prerequisites
+- Python 3.9+
+- Node.js 16+
+- NVIDIA API Key (for LLM integration)
 
-## API & Client Integration Choices
+### Backend Setup
 
-### NVIDIA vs Direct OpenAI API
+```bash
+cd backend
+pip install -r requirements.txt
 
-There were issues calling the OpenAI API directly from outside the NVIDIA environment (intermittent errors and inconsistent behavior). To de-risk the PoC, I switched back to the NVIDIA-hosted endpoint and used the OpenAI-compatible interface exposed there.
+# Set your NVIDIA API key
+export NVIDIA_API_KEY=your_api_key_here
 
-On top of that, I chose to use LangChain instead of the older chat completions API directly:
+# Run the FastAPI server
+uvicorn app.main:app --reload
+```
 
-- Faster prototyping and iteration
-- Cleaner prompt templating and model configuration
-- Easier model swapping if we want to experiment with different OSS models later
+The API will be available at `http://localhost:8000`. API documentation is accessible at `http://localhost:8000/docs`.
 
-This is a tradeoff toward developer velocity and familiarity over minimal dependencies, which is appropriate at this stage.
+### Frontend Setup
 
----
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Storage Layer Decision: JSON Fixture vs Database
+The web interface will be available at `http://localhost:5173`.
 
-### Chosen Option: JSON Fixture
+## API Endpoints
 
-For this proof-of-concept, I intentionally avoided setting up a relational database (PostgreSQL/SQLite) and instead used a simple JSON file as a data fixture acting as a lightweight “DB stub”. All feedback records are stored as an array in `feedback.json` and loaded into memory for analytics.
+- `POST /feedback` - Submit single feedback entry for analysis
+- `POST /feedback/bulk` - Submit multiple feedback entries for batch analysis
+- `GET /feedback/history` - Retrieve all analyzed feedback records
+- `GET /feedback/metrics` - Get analytics and metrics data
 
-**Reasons for this choice:**
+## Future Enhancements
 
-- Data size remains small; O(N) scans are acceptable
-- No need to manage schema migrations or migrations tooling
-- Sorting, grouping, and aggregating over a small dataset is trivial
-- Fewer moving pieces makes debugging and iteration simpler
+Potential improvements for production deployment:
 
-### Tradeoffs and Future Direction
+### Enhanced Filtering
+- Date range filtering for historical data
+- Topic-based search and filtering
+- Sentiment filtering on dashboard
+- Advanced search with text queries
 
-For production or higher traffic:
+### Security & Compliance
+- Authentication and authorization (OAuth2/JWT)
+- Role-based access control (RBAC)
+- Data encryption at rest and in transit
+- Audit logging for compliance
+- PII/PHI handling and anonymization
 
-- We would move to a relational database for concurrency, indexing, and relational modeling (e.g., user → feedback → visits).
-- We would add indices on timestamp, topic, and user ID for efficient filtering.
-- We would implement audit logging and structured retention controls at the DB level.
-- Async fetch calls need loading states with common components for loading and error states.
-- If history becomes extensive, we use lazy loading within infinite scroll, and define a static date range cutoff to display unless there's date range filter integration.
+### Scalability & Performance
+- Database migration (PostgreSQL/MongoDB)
+- Caching layer (Redis) for frequently accessed data
+- Rate limiting and request throttling
+- Background job processing for bulk operations
+- Horizontal scaling with load balancing
 
----
+### Monitoring & Observability
+- Centralized logging (structured logs)
+- Application performance monitoring
+- LLM usage metrics and cost tracking
+- Error tracking and alerting
+- Health checks and readiness probes
 
-## Additional Features With More Time
+## Design Philosophy
 
-With roughly one extra hour of engineering time, I would focus on filterable insights, since they significantly increase the value of the existing LLM pipeline:
+This application balances simplicity with functionality:
 
-### 1. Date Range Filtering
-
-- Add query parameters or request body filters (e.g., `from`, `to`) on history and metrics endpoints.
-- Filter records server-side by `createdAt` before computing metrics.
-- Propagate those filters into charts and history lists on the frontend.
-
-### 2. Topic Search
-
-- Normalize topics (lowercase, trimming, basic stemming/aliasing).
-- Add a topic filter that narrows:
-  - History list
-  - Top-topics panel
-  - Metrics breakdowns
-- Optionally introduce a simple synonym map to collapse near-duplicate topics (e.g., “wait time”, “long wait”, “delays” → “wait time”).
-
-These improvements would help the system move from a static dashboard to a more interactive analysis tool without requiring major architectural changes.
-
----
-
-## Security Considerations for a Production Deployment
-
-For a production environment, I would prioritize:
-
-### Authentication & Authorization
-
-- Introduce an auth layer (e.g., OAuth2, OIDC, or JWT-based login).
-- Implement role-based access control (RBAC):
-  - Admin roles for configuration and data export
-  - Analyst roles for viewing aggregated insights
-  - Restricted roles for viewing only anonymized or scoped data
-- Enforce route-level and data-level authorization:
-  - Protect history and metrics routes behind authenticated sessions
-  - Restrict raw feedback access to appropriate roles
-
-### Data Handling & Privacy
-
-- Clearly separate PII/PHI from derived insights.
-- Apply appropriate encryption at rest and in transit.
-- Consider on-prem or VPC-hosted models if regulatory requirements prohibit external LLM calls.
-
----
-
-## Data Retention & Deletion Policies
-
-The exact approach depends heavily on the regulatory context (e.g., HIPAA, GDPR, local healthcare regulations). I’d approach it in two layers:
-
-### 1. Regulatory-Driven Retention
-
-- If regulated, design retention windows and deletion workflows according to legal requirements.
-- Implement scheduled jobs to purge data beyond retention windows.
-- Provide traceable deletion logs and, where required, user-driven “right to be forgotten” flows.
-
-### 2. Operational Retention (If Not Strictly Regulated)
-
-Even in non-regulated contexts, uncontrolled data growth is a risk. I’d implement:
-
-- Time-to-live (TTL) policies for old records.
-- LRU-style pruning for caches or high-frequency stores.
-- Clear configuration flags for retention durations per environment (dev, staging, prod).
-
----
-
-## Future Hardening & Observability
-
-If this PoC becomes the basis for a production system, next steps would include:
-
-- Centralized logging and error tracking (e.g., structured logs, Sentry).
-- Metrics for LLM latency, error rates, and call volumes.
-- Health checks and readiness probes for the API.
-- CI/CD pipeline with automated tests for:
-  - LLM contract (JSON schema adherence)
-  - Metrics aggregation
-  - Permissions and access restrictions
-
----
-
-## Summary
-
-This PoC was intentionally optimized for:
-
-- Delivering the **LLM-driven feedback analysis** as the core feature.
-- Keeping the architecture simple enough to iterate quickly.
-- Making conscious tradeoffs (single LLM call, JSON storage) that are safe for a prototype but have a clear upgrade path.
-
-With additional time, I would focus first on **filterable insights**, then on **security, data retention, and persistence hardening** to evolve this into a production-ready system.
+- **Single LLM call**: Reduces latency and complexity while maintaining accuracy
+- **Structured outputs**: Pydantic models ensure type safety and consistent data validation
+- **Batch processing**: Efficient handling of multiple feedback entries
+- **Simple storage**: JSON-based persistence allows rapid iteration without database overhead
+- **Clean architecture**: Clear separation between API, analysis pipeline, and data models
