@@ -129,3 +129,13 @@ html, body, #root {
 .read-the-docs {
   color: #888;
 }
+
+/* Hide scrollbar while maintaining scroll functionality */
+.scrollbar-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

@@ -8,7 +8,7 @@ interface HistoryListProps {
 
 export default function HistoryList({ title, history, onSelect }: HistoryListProps) {
   return (
-    <aside className="section-card h-full p-4 rounded-xl shadow-sm overflow-auto">
+    <aside className="section-card h-full p-4 rounded-xl shadow-sm overflow-auto scrollbar-hidden">
       <h3 className="section-title">{title}</h3>
 
       {history.length === 0 ? (
