@@ -1,34 +1,31 @@
-import json
-from .llm_client import client
-from .models import Sentiment
+from .llm_client import base_client
+from .models import Sentiment, FeedbackAnalysis, BatchFeedbackAnalysis
 
 
 def ANALYSIS_PROMPT(feedback: str) -> str:
-    return f"""
-You are analyzing user feedback.
+    return f"""You are analyzing user feedback.
 
-Return ONLY valid JSON with exactly this structure:
-
-{{
-  "sentiment": "positive" | "neutral" | "negative",
-  "key_topics": ["topic1", "topic2"],
-  "action_required": boolean,
-  "summary": "short summary"
-}}
+Analyze the sentiment, identify key topics, determine if action is required, and provide a brief summary.
 
 Feedback:
-\"\"\"{feedback}\"\"\"
-""".strip()
+\"\"\"{feedback}\"\"\"""".strip()
 
 
-def normalize_sentiment(x) -> Sentiment:
-    low = str(x or "").lower()
-    if low in ("positive", "negative", "neutral"):
-        return Sentiment(low)
-    return Sentiment.neutral
+def BATCH_ANALYSIS_PROMPT(feedbacks: list[str]) -> str:
+    feedback_items = "\n".join(
+        [f'{i+1}. "{text}"' for i, text in enumerate(feedbacks)]
+    )
+    return f"""You are analyzing user feedback.
+
+Analyze these {len(feedbacks)} feedback entries in the EXACT same order:
+
+{feedback_items}
+
+For each feedback, analyze the sentiment, identify key topics, determine if action is required, and provide a brief summary.""".strip()
 
 
 def normalize_topics(raw):
+    """Normalize topic strings to lowercase and filter empty values"""
     if not isinstance(raw, list):
         return []
     return [str(t).strip().lower() for t in raw if str(t).strip()]
@@ -36,28 +33,17 @@ def normalize_topics(raw):
 
 async def analyze_feedback(text: str) -> dict:
     try:
-        # Using ChatNVIDIA streaming API
-        output_text = ""
-        for chunk in client.stream([{"role": "user", "content": ANALYSIS_PROMPT(text)}]):
-            output_text += chunk.content
+        # Create structured output client with Pydantic model
+        structured_client = base_client.with_structured_output(FeedbackAnalysis)
 
-        output = output_text.strip()
-
-        try:
-            parsed = json.loads(output)
-        except Exception:
-            parsed = {
-                "sentiment": "neutral",
-                "key_topics": [],
-                "action_required": False,
-                "summary": "Model returned invalid JSON.",
-            }
+        # Invoke with structured output - returns FeedbackAnalysis instance
+        result: FeedbackAnalysis = structured_client.invoke(ANALYSIS_PROMPT(text))
 
         return {
-            "sentiment": normalize_sentiment(parsed.get("sentiment")),
-            "keyTopics": normalize_topics(parsed.get("key_topics")),
-            "actionRequired": bool(parsed.get("action_required")),
-            "summary": parsed.get("summary") or "No summary provided.",
+            "sentiment": result.sentiment,
+            "keyTopics": normalize_topics(result.key_topics),
+            "actionRequired": result.action_required,
+            "summary": result.summary or "No summary provided.",
         }
     except Exception as e:
         # Fallback in case of API error
@@ -67,3 +53,43 @@ async def analyze_feedback(text: str) -> dict:
             "actionRequired": True,
             "summary": f"Error analyzing feedback: {str(e)}",
         }
+
+
+async def analyze_feedback_batch(texts: list[str]) -> list[dict]:
+    """
+    Analyze multiple feedback texts in a single LLM call.
+
+    Args:
+        texts: List of feedback text strings to analyze
+
+    Returns:
+        List of analysis dicts, one per input text in the same order
+    """
+    if not texts:
+        return []
+
+    # If only one text, use the single-item function
+    if len(texts) == 1:
+        return [await analyze_feedback(texts[0])]
+
+    # Create structured output client with Pydantic model for batch analysis
+    structured_client = base_client.with_structured_output(BatchFeedbackAnalysis)
+
+    # Invoke with structured output - returns BatchFeedbackAnalysis instance
+    result: BatchFeedbackAnalysis = structured_client.invoke(BATCH_ANALYSIS_PROMPT(texts))
+
+    # Validate response structure
+    if len(result.analyses) != len(texts):
+        raise ValueError(f"Expected {len(texts)} results, got {len(result.analyses)}")
+
+    # Normalize each result and convert to dict format
+    results = []
+    for analysis in result.analyses:
+        results.append({
+            "sentiment": analysis.sentiment,
+            "keyTopics": normalize_topics(analysis.key_topics),
+            "actionRequired": analysis.action_required,
+            "summary": analysis.summary or "No summary provided.",
+        })
+
+    return results
