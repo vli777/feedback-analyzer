@@ -10,6 +10,20 @@ class Sentiment(str, Enum):
     negative = "negative"
 
 
+# Pydantic models for LLM structured outputs
+class FeedbackAnalysis(BaseModel):
+    """Structured output model for single feedback analysis"""
+    sentiment: Sentiment
+    key_topics: List[str] = Field(description="Key topics or themes identified in the feedback")
+    action_required: bool = Field(description="Whether this feedback requires follow-up action")
+    summary: str = Field(description="Brief summary of the feedback")
+
+
+class BatchFeedbackAnalysis(BaseModel):
+    """Structured output model for batch feedback analysis"""
+    analyses: List[FeedbackAnalysis] = Field(description="List of feedback analyses in the same order as input")
+
+
 class FeedbackRecord(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -22,6 +36,8 @@ class FeedbackRecord(BaseModel):
                 "actionRequired": False,
                 "summary": "Patient praises doctor's attentiveness",
                 "createdAt": "2025-11-24T10:30:00Z"
+                "analyzedAt"
+                "analyze_status"
             }
         }
     )
