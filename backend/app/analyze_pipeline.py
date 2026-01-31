@@ -1,3 +1,5 @@
+import asyncio
+
 from .llm_client import base_client
 from .models import Sentiment, FeedbackAnalysis, BatchFeedbackAnalysis
 
@@ -41,7 +43,9 @@ async def analyze_feedback(text: str) -> dict:
         structured_client = base_client.with_structured_output(FeedbackAnalysis)
 
         # Invoke with structured output - returns FeedbackAnalysis instance
-        result: FeedbackAnalysis = structured_client.invoke(ANALYSIS_PROMPT(text))
+        result: FeedbackAnalysis = await asyncio.to_thread(
+            structured_client.invoke, ANALYSIS_PROMPT(text)
+        )
 
         return {
             "sentiment": result.sentiment,
@@ -80,7 +84,9 @@ async def analyze_feedback_batch(texts: list[str]) -> list[dict]:
     structured_client = base_client.with_structured_output(BatchFeedbackAnalysis)
 
     # Invoke with structured output - returns BatchFeedbackAnalysis instance
-    result: BatchFeedbackAnalysis = structured_client.invoke(BATCH_ANALYSIS_PROMPT(texts))
+    result: BatchFeedbackAnalysis = await asyncio.to_thread(
+        structured_client.invoke, BATCH_ANALYSIS_PROMPT(texts)
+    )
 
     # Validate response structure
     if len(result.analyses) != len(texts):

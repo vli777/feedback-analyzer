@@ -1,8 +1,10 @@
 import asyncio
+import logging
 import uuid
-from datetime import datetime
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import List
-from fastapi import FastAPI, HTTPException, UploadFile, File, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
@@ -20,11 +22,64 @@ from .storage import read_all_feedback, append_feedback, append_feedback_many
 from .analyze_pipeline import analyze_feedback, analyze_feedback_batch
 from .metrics import compute_metrics
 from .bulk_upload import parse_bulk_file, parse_created_at, make_record_id
-from .config import BULK_RATE_LIMIT_RPM, BULK_BATCH_SIZE, BULK_MAX_CONCURRENCY
+from .config import (
+    BULK_RATE_LIMIT_RPM, BULK_BATCH_SIZE, BULK_MAX_CONCURRENCY,
+    STUB_WS_URL, WS_INBOUND_QUEUE_SIZE, WS_WORKER_COUNT, WS_CURSOR_FILE,
+)
+from .ws_broadcaster import Broadcaster
+from .event_queue import CursorStore, EventWorkerPool
+from .ws_bridge import WSBridge
+
+logger = logging.getLogger(__name__)
+
+# Monotonically increasing sequence counter for REST-originated events
+_rest_seq = 0
+
+
+def _next_rest_seq() -> int:
+    global _rest_seq
+    _rest_seq += 1
+    return _rest_seq
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ──────────────────────────────────────────────────────
+    broadcaster = Broadcaster()
+    cursor_store = CursorStore(WS_CURSOR_FILE)
+    worker_pool = EventWorkerPool(
+        broadcaster=broadcaster,
+        cursor_store=cursor_store,
+        num_workers=WS_WORKER_COUNT,
+        queue_size=WS_INBOUND_QUEUE_SIZE,
+    )
+    bridge = WSBridge(
+        inbound_queue=worker_pool.queue,
+        initial_cursors=cursor_store.all_cursors(),
+        url=STUB_WS_URL,
+    )
+
+    await worker_pool.start()
+    await bridge.start()
+
+    app.state.broadcaster = broadcaster
+    app.state.worker_pool = worker_pool
+    app.state.bridge = bridge
+
+    logger.info("WS pipeline started (bridge -> queue -> workers -> broadcaster)")
+
+    yield
+
+    # ── Shutdown ─────────────────────────────────────────────────────
+    await bridge.stop()
+    await worker_pool.stop()
+    logger.info("WS pipeline stopped")
+
 
 app = FastAPI(
     title="Feedback Analyzer API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -37,6 +92,21 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 def read_root():
     return RedirectResponse(url="/docs")
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    broadcaster: Broadcaster = app.state.broadcaster
+    await broadcaster.connect(ws)
+    try:
+        while True:
+            # Keep connection alive; detect client disconnect
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await broadcaster.disconnect(ws)
+
 
 @app.post("/api/v1/feedback", response_model=FeedbackCreateResponse)
 async def create_feedback(payload: FeedbackCreateRequest):
@@ -69,6 +139,24 @@ async def create_feedback(payload: FeedbackCreateRequest):
     )
 
     append_feedback(record)
+
+    # Broadcast to connected frontend WS clients (Pipeline B)
+    broadcaster: Broadcaster = app.state.broadcaster
+    await broadcaster.broadcast({
+        "jobId": "rest",
+        "seq": _next_rest_seq(),
+        "type": "item.analyzed",
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "payload": {
+            "index": 0,
+            "text": record.text,
+            "sentiment": record.sentiment.value if hasattr(record.sentiment, "value") else record.sentiment,
+            "keyTopics": record.keyTopics,
+            "actionRequired": record.actionRequired,
+            "summary": record.summary,
+        },
+    })
+
     return {"record": record}
 
 

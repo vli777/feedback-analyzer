@@ -1,10 +1,12 @@
 import json
+import threading
 from pathlib import Path
 from typing import List
 from fastapi import HTTPException
 from .models import FeedbackRecord
 
 FILE_PATH = Path("data/feedback.json")
+_storage_lock = threading.Lock()
 
 
 def _ensure():
@@ -17,8 +19,9 @@ def _ensure():
 def read_all_feedback() -> List[FeedbackRecord]:
     _ensure()
     try:
-        raw = FILE_PATH.read_text()
-        arr = json.loads(raw or "[]")
+        with _storage_lock:
+            raw = FILE_PATH.read_text()
+            arr = json.loads(raw or "[]")
         return [FeedbackRecord(**item) for item in arr]
     except Exception as e:
         raise HTTPException(500, f"Error reading DB: {e}")
@@ -27,10 +30,11 @@ def read_all_feedback() -> List[FeedbackRecord]:
 def append_feedback(record: FeedbackRecord):
     _ensure()
     try:
-        raw = FILE_PATH.read_text() or "[]"
-        arr = json.loads(raw)
-        arr.append(json.loads(record.json()))
-        FILE_PATH.write_text(json.dumps(arr, indent=2))
+        with _storage_lock:
+            raw = FILE_PATH.read_text() or "[]"
+            arr = json.loads(raw)
+            arr.append(json.loads(record.json()))
+            FILE_PATH.write_text(json.dumps(arr, indent=2))
     except Exception as e:
         raise HTTPException(500, f"Error writing DB: {e}")
 
@@ -41,10 +45,11 @@ def append_feedback_many(records: List[FeedbackRecord]):
         return
     _ensure()
     try:
-        raw = FILE_PATH.read_text() or "[]"
-        arr = json.loads(raw)
-        for record in records:
-            arr.append(json.loads(record.json()))
-        FILE_PATH.write_text(json.dumps(arr, indent=2))
+        with _storage_lock:
+            raw = FILE_PATH.read_text() or "[]"
+            arr = json.loads(raw)
+            for record in records:
+                arr.append(json.loads(record.json()))
+            FILE_PATH.write_text(json.dumps(arr, indent=2))
     except Exception as e:
         raise HTTPException(500, f"Error writing DB: {e}")
