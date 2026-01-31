@@ -20,6 +20,9 @@ BULK_RATE_LIMIT_RPM = _env_float("BULK_RATE_LIMIT_RPM", 30.0)
 # Number of feedback items to batch together in a single LLM call
 BULK_BATCH_SIZE = _env_int("BULK_BATCH_SIZE", 10)
 
+# Maximum number of batches to process in parallel
+BULK_MAX_CONCURRENCY = _env_int("BULK_MAX_CONCURRENCY", 4)
+
 # Fallback delay between LLM calls for bulk analysis
 if BULK_RATE_LIMIT_RPM > 0:
     BULK_DELAY_SECONDS = max(60.0 / BULK_RATE_LIMIT_RPM, 0.1)

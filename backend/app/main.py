@@ -16,11 +16,11 @@ from .models import (
     HistoryItem,
     Metrics,
 )
-from .storage import read_all_feedback, append_feedback
+from .storage import read_all_feedback, append_feedback, append_feedback_many
 from .analyze_pipeline import analyze_feedback, analyze_feedback_batch
 from .metrics import compute_metrics
 from .bulk_upload import parse_bulk_file, parse_created_at, make_record_id
-from .config import BULK_RATE_LIMIT_RPM, BULK_BATCH_SIZE
+from .config import BULK_RATE_LIMIT_RPM, BULK_BATCH_SIZE, BULK_MAX_CONCURRENCY
 
 app = FastAPI(
     title="Feedback Analyzer API",
@@ -112,15 +112,18 @@ async def bulk_upload(
     file: UploadFile = File(...),
     rate_limit_rpm: float | None = Query(None, ge=0, description="Overrides default RPM (default 30)"),
     batch_size: int | None = Query(None, ge=1, le=50, description="Items per batch (default 10)"),
+    max_concurrency: int | None = Query(None, ge=1, le=10, description="Max parallel batches (default 4)"),
 ):
     """
     Bulk upload feedback for analysis.
 
-    Processes items in batches with a configurable delay to respect rate limits.
-    Each batch sends multiple items in a single LLM call for better throughput.
+    Processes items in batch-parallel: batches are dispatched concurrently via
+    asyncio.gather, bounded by a semaphore (max_concurrency). Starts are
+    staggered by delay_seconds to respect API rate limits.
     """
     effective_rpm = rate_limit_rpm or BULK_RATE_LIMIT_RPM
     effective_batch_size = batch_size or BULK_BATCH_SIZE
+    effective_concurrency = max_concurrency or BULK_MAX_CONCURRENCY
 
     if effective_rpm and effective_rpm > 0:
         delay_seconds = max(60.0 / effective_rpm, 0.1)
@@ -129,14 +132,14 @@ async def bulk_upload(
 
     content = await file.read()
     items = parse_bulk_file(file, content)
-    results = {"total": len(items), "success": [], "failed": [], "batches": 0}
 
-    # Process items in batches
+    # ── Phase 1: prepare all batches ──────────────────────────────────
+    prepared_batches = []
+    prep_failures = []
+
     for batch_idx in range(0, len(items), effective_batch_size):
         batch = items[batch_idx:batch_idx + effective_batch_size]
-        results["batches"] += 1
 
-        # Prepare batch data
         batch_texts = []
         batch_metadata = []
 
@@ -145,9 +148,7 @@ async def bulk_upload(
             text = str(item.get("text") or "").strip()
 
             if not text:
-                results["failed"].append({"index": global_idx, "error": "Missing text"})
-                batch_texts.append(None)
-                batch_metadata.append(None)
+                prep_failures.append({"index": global_idx, "error": "Missing text"})
                 continue
 
             user_id = item.get("userId") or item.get("user_id") or item.get("user")
@@ -162,45 +163,74 @@ async def bulk_upload(
                 "createdAt": created_at,
             })
 
-        # Filter out None entries (items with missing text)
-        valid_texts = [t for t in batch_texts if t is not None]
-        valid_metadata = [m for m in batch_metadata if m is not None]
+        if batch_texts:
+            prepared_batches.append({"texts": batch_texts, "metadata": batch_metadata})
 
-        if not valid_texts:
-            continue
+    # ── Phase 2: process batches in parallel ──────────────────────────
+    semaphore = asyncio.Semaphore(effective_concurrency)
 
-        # Batch analysis
-        try:
-            analyses = await analyze_feedback_batch(valid_texts)
+    async def _process_batch(batch_info, batch_number):
+        # Stagger starts to respect rate limits
+        if delay_seconds and batch_number > 0:
+            await asyncio.sleep(delay_seconds * batch_number)
 
-            # Create records from batch results
-            for metadata, analysis in zip(valid_metadata, analyses):
+        async with semaphore:
+            try:
+                analyses = await analyze_feedback_batch(batch_info["texts"])
+                return {
+                    "ok": True,
+                    "texts": batch_info["texts"],
+                    "metadata": batch_info["metadata"],
+                    "analyses": analyses,
+                }
+            except Exception as e:
+                return {
+                    "ok": False,
+                    "metadata": batch_info["metadata"],
+                    "error": str(e),
+                }
+
+    batch_results = await asyncio.gather(
+        *[_process_batch(b, i) for i, b in enumerate(prepared_batches)]
+    )
+
+    # ── Phase 3: collect results & persist ────────────────────────────
+    results = {
+        "total": len(items),
+        "success": [],
+        "failed": list(prep_failures),
+        "batches": len(prepared_batches),
+    }
+    all_records = []
+
+    for br in batch_results:
+        if br["ok"]:
+            for meta, analysis in zip(br["metadata"], br["analyses"]):
                 try:
+                    text_idx = br["metadata"].index(meta)
                     record = FeedbackRecord(
-                        id=make_record_id(metadata["item"]),
-                        text=valid_texts[valid_metadata.index(metadata)],
-                        userId=metadata["userId"],
+                        id=make_record_id(meta["item"]),
+                        text=br["texts"][text_idx],
+                        userId=meta["userId"],
                         sentiment=analysis["sentiment"],
                         keyTopics=analysis["keyTopics"],
                         actionRequired=analysis["actionRequired"],
                         summary=analysis["summary"],
-                        createdAt=metadata["createdAt"],
+                        createdAt=meta["createdAt"],
                     )
-                    append_feedback(record)
-                    results["success"].append({"index": metadata["index"], "id": record.id})
+                    all_records.append(record)
+                    results["success"].append({"index": meta["index"], "id": record.id})
                 except Exception as e:
-                    results["failed"].append({"index": metadata["index"], "error": str(e)})
+                    results["failed"].append({"index": meta["index"], "error": str(e)})
+        else:
+            for meta in br["metadata"]:
+                results["failed"].append({"index": meta["index"], "error": f"Batch error: {br['error']}"})
 
-        except Exception as e:
-            # If batch analysis fails, mark all items in batch as failed
-            for metadata in valid_metadata:
-                results["failed"].append({"index": metadata["index"], "error": f"Batch error: {str(e)}"})
-
-        # Rate limiting delay between batches (not after the last batch)
-        if delay_seconds and batch_idx + effective_batch_size < len(items):
-            await asyncio.sleep(delay_seconds)
+    if all_records:
+        append_feedback_many(all_records)
 
     results["rateLimitRpm"] = effective_rpm
     results["batchSize"] = effective_batch_size
+    results["maxConcurrency"] = effective_concurrency
     results["delaySeconds"] = delay_seconds
     return results

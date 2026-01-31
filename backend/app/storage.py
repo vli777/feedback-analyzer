@@ -33,3 +33,18 @@ def append_feedback(record: FeedbackRecord):
         FILE_PATH.write_text(json.dumps(arr, indent=2))
     except Exception as e:
         raise HTTPException(500, f"Error writing DB: {e}")
+
+
+def append_feedback_many(records: List[FeedbackRecord]):
+    """Append multiple records in a single read-modify-write cycle."""
+    if not records:
+        return
+    _ensure()
+    try:
+        raw = FILE_PATH.read_text() or "[]"
+        arr = json.loads(raw)
+        for record in records:
+            arr.append(json.loads(record.json()))
+        FILE_PATH.write_text(json.dumps(arr, indent=2))
+    except Exception as e:
+        raise HTTPException(500, f"Error writing DB: {e}")
