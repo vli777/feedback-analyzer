@@ -1,0 +1,162 @@
+[
+  {
+    "text": "I had a pleasant visit to the clinic today.",
+    "userId": "Alex",
+    "sentiment": "positive",
+    "keyTopics": ["clinic visit", "pleasant experience"],
+    "actionRequired": false,
+    "summary": "Patient reported pleasant experience at clinic"
+  },
+  {
+    "text": "Wait times were low and the doctor seemed to care about the patient.",
+    "userId": "Maria",
+    "sentiment": "positive",
+    "keyTopics": ["wait times", "doctor care"],
+    "actionRequired": false,
+    "summary": "Patient had a positive experience with low wait times and attentive doctor"
+  },
+  {
+    "text": "The doctor was very helpful and attentive during my visit.",
+    "userId": "Chris",
+    "sentiment": "positive",
+    "keyTopics": ["helpful", "attentive"],
+    "actionRequired": false,
+    "summary": "Patient found the doctor helpful and attentive"
+  },
+  {
+    "text": "I had an appointment with the doctor to discuss my headaches.",
+    "userId": "David",
+    "sentiment": "neutral",
+    "keyTopics": ["headaches", "appointment"],
+    "actionRequired": false,
+    "summary": "Patient discussed headache concerns with doctor"
+  },
+  {
+    "text": "The doctor's visit was quick; I only needed a prescription refill.",
+    "userId": "Emily",
+    "sentiment": "positive",
+    "keyTopics": ["prescription refill", "quick visit"],
+    "actionRequired": false,
+    "summary": "Quick visit for prescription refill"
+  },
+  {
+    "text": "I am here to see the pediatrician about my son's fever.",
+    "userId": "Frank",
+    "sentiment": "neutral",
+    "keyTopics": ["pediatrician", "fever"],
+    "actionRequired": false,
+    "summary": "Parent seeking pediatric care for child's fever"
+  },
+  {
+    "text": "During my consultation, the doctor checked my blood pressure and heart rate.",
+    "userId": "Grace",
+    "sentiment": "positive",
+    "keyTopics": ["blood pressure", "heart rate"],
+    "actionRequired": false,
+    "summary": "Vital signs checked during consultation"
+  },
+  {
+    "text": "I described my symptoms of cough and fatigue to the physician.",
+    "userId": "Henry",
+    "sentiment": "neutral",
+    "keyTopics": ["cough", "fatigue"],
+    "actionRequired": false,
+    "summary": "Patient reported cough and fatigue symptoms"
+  },
+  {
+    "text": "The doctor diagnosed me with a minor infection and prescribed antibiotics.",
+    "userId": "Isabel",
+    "sentiment": "positive",
+    "keyTopics": ["infection", "antibiotics"],
+    "actionRequired": false,
+    "summary": "Minor infection diagnosed, antibiotics prescribed"
+  },
+  {
+    "text": "I had to take a blood sample for testing at the lab.",
+    "userId": "Jack",
+    "sentiment": "neutral",
+    "keyTopics": ["blood sample", "testing"],
+    "actionRequired": false,
+    "summary": "Blood sample taken for laboratory testing"
+  },
+  {
+    "text": "The nurse gave me an injection during my clinic visit.",
+    "userId": "Karen",
+    "sentiment": "neutral",
+    "keyTopics": ["injection", "clinic visit"],
+    "actionRequired": false,
+    "summary": "Patient received injection during clinic visit"
+  },
+  {
+    "text": "I received a referral from my GP to see a dermatologist.",
+    "userId": "Leo",
+    "sentiment": "positive",
+    "keyTopics": ["dermatologist", "referral"],
+    "actionRequired": false,
+    "summary": "Patient referred to dermatology specialist"
+  },
+  {
+    "text": "The doctor wants to keep me for overnight observation after my visit.",
+    "userId": "Olivia",
+    "sentiment": "negative",
+    "keyTopics": ["observation", "overnight"],
+    "actionRequired": true,
+    "summary": "Overnight observation required after visit"
+  },
+  {
+    "text": "I need to schedule an appointment with my general practitioner soon.",
+    "userId": "Steve",
+    "sentiment": "negative",
+    "keyTopics": ["general practitioner", "appointment"],
+    "actionRequired": true,
+    "summary": "Patient needs to schedule GP appointment"
+  },
+  {
+    "text": "My test results came back normal, which is a relief.",
+    "userId": "Peter",
+    "sentiment": "positive",
+    "keyTopics": ["test results", "relief"],
+    "actionRequired": false,
+    "summary": "Patient relieved by normal test results"
+  },
+  {
+    "text": "The after-visit summary outlined my diagnosis and follow-up steps.",
+    "userId": "Mia",
+    "sentiment": "positive",
+    "keyTopics": ["diagnosis", "follow-up"],
+    "actionRequired": false,
+    "summary": "Patient received diagnosis and follow-up instructions"
+  },
+  {
+    "text": "I waited in the doctor's office for over an hour past my appointment time.",
+    "userId": "Noah",
+    "sentiment": "negative",
+    "keyTopics": ["wait times", "appointment delay"],
+    "actionRequired": true,
+    "summary": "Patient experienced excessive wait time past scheduled appointment"
+  },
+  {
+    "text": "The doctor recommended an X-ray for my ankle injury.",
+    "userId": "Rachel",
+    "sentiment": "positive",
+    "keyTopics": ["x-ray", "injury"],
+    "actionRequired": false,
+    "summary": "X-ray recommended for ankle injury"
+  },
+  {
+    "text": "The doctor advised me to stop smoking for better health.",
+    "userId": "Tina",
+    "sentiment": "positive",
+    "keyTopics": ["smoking", "health"],
+    "actionRequired": false,
+    "summary": "Doctor advised smoking cessation"
+  },
+  {
+    "text": "The billing department overcharged me and it took weeks to resolve.",
+    "userId": "Quinn",
+    "sentiment": "negative",
+    "keyTopics": ["billing", "overcharge"],
+    "actionRequired": true,
+    "summary": "Patient experienced billing overcharge with slow resolution"
+  }
+]
