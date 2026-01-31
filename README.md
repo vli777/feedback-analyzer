@@ -80,6 +80,17 @@ uvicorn app.main:app --reload
 
 The API will be available at `http://localhost:8000`. API documentation is accessible at `http://localhost:8000/docs`.
 
+### WebSocket Event Stub (for live updates)
+
+The live dashboard stream uses a local stub WebSocket source. Run it in a separate terminal:
+
+```bash
+cd backend
+python stub_event_source.py --host 127.0.0.1 --port 8765
+```
+
+The backend will connect to it automatically on startup. If you change the port, set `STUB_WS_URL` accordingly.
+
 ### Frontend Setup
 
 ```bash
