@@ -103,10 +103,17 @@ def _mutate_entry(entry: dict) -> dict:
 
 
 class StubEventSource:
-    def __init__(self, seed: list[dict], interval: float = 2.0, generate_ratio: float = 0.3):
+    def __init__(
+        self,
+        seed: list[dict],
+        interval: float = 2.0,
+        generate_ratio: float = 0.3,
+        jitter_ratio: float = 0.4,
+    ):
         self._seed = seed
         self.interval = interval
         self._generate_ratio = generate_ratio  # fraction of items that are fully generated
+        self._jitter_ratio = jitter_ratio
         self.clients: set = set()
         self._seq = 0
         self._running = False
@@ -154,7 +161,9 @@ class StubEventSource:
         )
 
         for idx, item in enumerate(items):
-            await asyncio.sleep(self.interval)
+            jitter = self.interval * self._jitter_ratio
+            delay = max(0.1, random.uniform(self.interval - jitter, self.interval + jitter))
+            await asyncio.sleep(delay)
             if not self.clients:
                 return
             await self._broadcast(
@@ -185,7 +194,9 @@ class StubEventSource:
         while self._running:
             if self.clients:
                 await self._produce_job()
-                await asyncio.sleep(self.interval * 2)
+                jitter = self.interval * self._jitter_ratio
+                delay = max(0.2, random.uniform(self.interval * 2 - jitter, self.interval * 2 + jitter))
+                await asyncio.sleep(delay)
             else:
                 await asyncio.sleep(0.5)
 
@@ -214,15 +225,29 @@ class StubEventSource:
         self._running = False
 
 
-async def main(host: str, port: int, interval: float, seed_file: Path, generate_ratio: float):
+async def main(
+    host: str,
+    port: int,
+    interval: float,
+    seed_file: Path,
+    generate_ratio: float,
+    jitter_ratio: float,
+):
     seed = _load_seed(seed_file)
     print(f"[stub] Loaded {len(seed)} seed entries from {seed_file}")
 
-    source = StubEventSource(seed=seed, interval=interval, generate_ratio=generate_ratio)
+    source = StubEventSource(
+        seed=seed,
+        interval=interval,
+        generate_ratio=generate_ratio,
+        jitter_ratio=jitter_ratio,
+    )
     producer_task = asyncio.create_task(source._producer_loop())
 
     print(f"[stub] WebSocket event source running on ws://{host}:{port}")
-    print(f"[stub] Event interval: {interval}s | Generate ratio: {generate_ratio:.0%}")
+    print(
+        f"[stub] Event interval: {interval}s | Generate ratio: {generate_ratio:.0%} | Jitter: {jitter_ratio:.0%}"
+    )
 
     async with websockets.serve(source.handler, host, port):
         try:
@@ -247,6 +272,17 @@ if __name__ == "__main__":
                         help="Path to seed JSON file (default: data/stub_seed.json)")
     parser.add_argument("--generate-ratio", type=float, default=0.3,
                         help="Fraction of items that are fully generated vs seed-based (default: 0.3)")
+    parser.add_argument("--jitter-ratio", type=float, default=0.4,
+                        help="Randomize delays by +/- ratio of interval (default: 0.4)")
     args = parser.parse_args()
 
-    asyncio.run(main(args.host, args.port, args.interval, args.seed_file, args.generate_ratio))
+    asyncio.run(
+        main(
+            args.host,
+            args.port,
+            args.interval,
+            args.seed_file,
+            args.generate_ratio,
+            args.jitter_ratio,
+        )
+    )
