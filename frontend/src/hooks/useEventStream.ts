@@ -1,0 +1,185 @@
+import { useCallback, useEffect, useReducer, useRef } from "react";
+import { WS_URL } from "../api";
+import type {
+  WsEvent,
+  ItemAnalyzedPayload,
+  JobProgress,
+} from "../types/wsEvents";
+
+// ── State ────────────────────────────────────────────────────────────
+
+interface State {
+  connected: boolean;
+  jobs: Record<string, JobProgress>;
+  pendingItems: ItemAnalyzedPayload[];
+  lastSeqByJob: Record<string, number>;
+}
+
+const initialState: State = {
+  connected: false,
+  jobs: {},
+  pendingItems: [],
+  lastSeqByJob: {},
+};
+
+// ── Actions ──────────────────────────────────────────────────────────
+
+type Action =
+  | { type: "CONNECTED" }
+  | { type: "DISCONNECTED" }
+  | { type: "EVENT"; event: WsEvent }
+  | { type: "FLUSH_PENDING" };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "CONNECTED":
+      return { ...state, connected: true };
+
+    case "DISCONNECTED":
+      return { ...state, connected: false };
+
+    case "EVENT": {
+      const { event } = action;
+      const { jobId, seq } = event;
+
+      // Dedup: skip if we've already seen this seq for this job
+      if (seq <= (state.lastSeqByJob[jobId] ?? 0)) {
+        return state;
+      }
+
+      const nextSeqs = { ...state.lastSeqByJob, [jobId]: seq };
+
+      if (event.type === "job.started") {
+        const payload = event.payload as { totalItems: number };
+        return {
+          ...state,
+          lastSeqByJob: nextSeqs,
+          jobs: {
+            ...state.jobs,
+            [jobId]: {
+              jobId,
+              totalItems: payload.totalItems,
+              processedItems: 0,
+              failedItems: 0,
+              completed: false,
+            },
+          },
+        };
+      }
+
+      if (event.type === "item.analyzed") {
+        const payload = event.payload as ItemAnalyzedPayload;
+        const existing = state.jobs[jobId];
+        return {
+          ...state,
+          lastSeqByJob: nextSeqs,
+          pendingItems: [...state.pendingItems, payload],
+          jobs: existing
+            ? {
+                ...state.jobs,
+                [jobId]: {
+                  ...existing,
+                  processedItems: existing.processedItems + 1,
+                },
+              }
+            : state.jobs,
+        };
+      }
+
+      if (event.type === "job.completed") {
+        const payload = event.payload as {
+          totalItems: number;
+          processedItems: number;
+          failedItems: number;
+        };
+        return {
+          ...state,
+          lastSeqByJob: nextSeqs,
+          jobs: {
+            ...state.jobs,
+            [jobId]: {
+              jobId,
+              totalItems: payload.totalItems,
+              processedItems: payload.processedItems,
+              failedItems: payload.failedItems,
+              completed: true,
+            },
+          },
+        };
+      }
+
+      return { ...state, lastSeqByJob: nextSeqs };
+    }
+
+    case "FLUSH_PENDING":
+      return { ...state, pendingItems: [] };
+
+    default:
+      return state;
+  }
+}
+
+// ── Hook ─────────────────────────────────────────────────────────────
+
+export function useEventStream() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const delayRef = useRef(1000);
+  const connectRef = useRef<(() => void) | undefined>(undefined);
+
+  connectRef.current = () => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      dispatch({ type: "CONNECTED" });
+      delayRef.current = 1000; // Reset backoff
+    };
+
+    ws.onmessage = (evt) => {
+      try {
+        const event: WsEvent = JSON.parse(evt.data);
+        dispatch({ type: "EVENT", event });
+      } catch {
+        // Ignore non-JSON messages
+      }
+    };
+
+    ws.onclose = () => {
+      dispatch({ type: "DISCONNECTED" });
+      wsRef.current = null;
+      // Reconnect with exponential backoff
+      reconnectTimer.current = setTimeout(() => {
+        delayRef.current = Math.min(delayRef.current * 2, 30000);
+        connectRef.current?.();
+      }, delayRef.current);
+    };
+
+    ws.onerror = () => {
+      // onclose will fire after this, triggering reconnect
+      ws.close();
+    };
+  };
+
+  useEffect(() => {
+    connectRef.current?.();
+    return () => {
+      clearTimeout(reconnectTimer.current);
+      wsRef.current?.close();
+    };
+  }, []);
+
+  const flushPending = useCallback(() => {
+    dispatch({ type: "FLUSH_PENDING" });
+  }, []);
+
+  return {
+    connected: state.connected,
+    jobs: state.jobs,
+    pendingItems: state.pendingItems,
+    flushPending,
+  };
+}
