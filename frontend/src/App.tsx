@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   sendFeedback,
   fetchHistory,
@@ -7,10 +7,12 @@ import {
   type HistoryItem,
   type Metrics,
 } from "./api";
+import { useEventStream } from "./hooks/useEventStream";
 import InsightPanel from "./components/InsightPanel";
 import MetricsPanel from "./components/MetricsPanel";
 import FeedbackForm from "./components/FeedbackForm";
 import HistoryList from "./components/HistoryList";
+import StreamProgress from "./components/StreamProgress";
 import "./App.css";
 
 type InsightRecord = FeedbackRecord | HistoryItem;
@@ -22,6 +24,8 @@ function App() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [selected, setSelected] = useState<InsightRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { connected, jobs, pendingItems, flushPending } = useEventStream();
+  const prevCompletedRef = useRef<Set<string>>(new Set());
 
   const loadAll = useCallback(async () => {
     try {
@@ -65,6 +69,54 @@ function App() {
   const handleSelectHistory = (item: HistoryItem) => {
     setSelected(item);
   };
+
+  // Incrementally add WS-streamed items to history and metrics
+  useEffect(() => {
+    if (pendingItems.length === 0) return;
+
+    const newHistoryItems: HistoryItem[] = pendingItems.map((item) => ({
+      id: crypto.randomUUID(),
+      userId: null,
+      summary: item.summary,
+      createdAt: new Date().toISOString(),
+      sentiment: item.sentiment,
+    }));
+
+    setHistory((prev) => [...newHistoryItems.reverse(), ...prev]);
+
+    // Incrementally update sentiment distribution
+    setMetrics((prev) => {
+      if (!prev) return prev;
+      const dist = { ...prev.sentimentDistribution };
+      for (const item of pendingItems) {
+        dist[item.sentiment] = (dist[item.sentiment] ?? 0) + 1;
+      }
+      return { ...prev, sentimentDistribution: dist };
+    });
+
+    flushPending();
+  }, [pendingItems, flushPending]);
+
+  // On job.completed, do a full reconciliation from server
+  useEffect(() => {
+    const completedIds = new Set(
+      Object.values(jobs)
+        .filter((j) => j.completed)
+        .map((j) => j.jobId)
+    );
+    const prev = prevCompletedRef.current;
+    let hasNew = false;
+    for (const id of completedIds) {
+      if (!prev.has(id)) {
+        hasNew = true;
+        break;
+      }
+    }
+    prevCompletedRef.current = completedIds;
+    if (hasNew) {
+      loadAll();
+    }
+  }, [jobs, loadAll]);
 
   return (
     <main className="dashboard-grid p-6 overflow-hidden">
@@ -111,14 +163,21 @@ function App() {
 
       {/* Row 3 Col 1–2 */}
       <div className="grid-feedback section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
-        <FeedbackForm
-          title="Submit Feedback"
-          text={text}
-          setText={setText}
-          loading={loading}
-          error={error}
-          onSubmit={handleSubmit}
-        />
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <div className="flex-1">
+            <FeedbackForm
+              title="Submit Feedback"
+              text={text}
+              setText={setText}
+              loading={loading}
+              error={error}
+              onSubmit={handleSubmit}
+            />
+          </div>
+          <div className="w-48 shrink-0">
+            <StreamProgress connected={connected} jobs={jobs} />
+          </div>
+        </div>
       </div>
     </main>
   );
