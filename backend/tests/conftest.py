@@ -9,45 +9,48 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def mock_llm_client(monkeypatch):
     """Mock the LLM client to avoid actual API calls during tests."""
+    from app.models import FeedbackAnalysis, BatchFeedbackAnalysis, Sentiment
+
+    def _make_single():
+        return FeedbackAnalysis(
+            sentiment=Sentiment.positive,
+            key_topics=["test", "feedback"],
+            action_required=False,
+            summary="Test feedback analysis summary result",
+        )
+
+    class _StructuredSingle:
+        def invoke(self, prompt):
+            return _make_single()
+
+    class _StructuredBatch:
+        def invoke(self, prompt):
+            # Count numbered items in the prompt (e.g. '1. "...' , '2. "...')
+            import re
+            num_items = len(re.findall(r'^\d+\.\s+"', prompt, re.MULTILINE))
+            num_items = max(num_items, 1)
+            return BatchFeedbackAnalysis(
+                analyses=[
+                    FeedbackAnalysis(
+                        sentiment=Sentiment.positive,
+                        key_topics=["test", "batch"],
+                        action_required=False,
+                        summary=f"Test feedback {i+1} analysis result",
+                    )
+                    for i in range(num_items)
+                ]
+            )
+
     mock_client = Mock()
 
-    def mock_stream(messages):
-        """Mock streaming response with valid JSON."""
-        content = messages[0]["content"]
+    def _with_structured_output(model_cls):
+        if model_cls is BatchFeedbackAnalysis:
+            return _StructuredBatch()
+        return _StructuredSingle()
 
-        # Check if it's a batch request (contains numbered list)
-        if "1. " in content and "2. " in content:
-            # Count number of items in batch
-            num_items = content.count('"""') // 2
-            # Return array of analyses
-            response = [
-                {
-                    "sentiment": "positive",
-                    "key_topics": ["test", "batch"],
-                    "action_required": False,
-                    "summary": f"Test feedback {i+1} analysis"
-                }
-                for i in range(num_items)
-            ]
-            response_json = json.dumps(response)
-        else:
-            # Single item analysis
-            response_json = json.dumps({
-                "sentiment": "positive",
-                "key_topics": ["test", "feedback"],
-                "action_required": False,
-                "summary": "Test feedback analysis"
-            })
+    mock_client.with_structured_output = _with_structured_output
 
-        # Return mock chunks that simulate streaming
-        chunk = Mock()
-        chunk.content = response_json
-        return [chunk]
-
-    mock_client.stream = mock_stream
-
-    # Patch the client in the analyze_pipeline module
-    monkeypatch.setattr("app.analyze_pipeline.client", mock_client)
+    monkeypatch.setattr("app.analyze_pipeline.base_client", mock_client)
     return mock_client
 
 
