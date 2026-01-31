@@ -163,21 +163,18 @@ function App() {
 
       {/* Row 3 Col 1–2 */}
       <div className="grid-feedback section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <div className="flex-1">
-            <FeedbackForm
-              title="Submit Feedback"
-              text={text}
-              setText={setText}
-              loading={loading}
-              error={error}
-              onSubmit={handleSubmit}
-            />
-          </div>
-          <div className="w-48 shrink-0">
-            <StreamProgress connected={connected} jobs={jobs} />
-          </div>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="section-title mb-0">Submit Feedback</h3>
+          <StreamProgress connected={connected} jobs={jobs} />
         </div>
+        <FeedbackForm
+          title=""
+          text={text}
+          setText={setText}
+          loading={loading}
+          error={error}
+          onSubmit={handleSubmit}
+        />
       </div>
     </main>
   );

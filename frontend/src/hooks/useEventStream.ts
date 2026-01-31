@@ -126,48 +126,66 @@ export function useEventStream() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const delayRef = useRef(1000);
-  const connectRef = useRef<(() => void) | undefined>(undefined);
-
-  connectRef.current = () => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      dispatch({ type: "CONNECTED" });
-      delayRef.current = 1000; // Reset backoff
-    };
-
-    ws.onmessage = (evt) => {
-      try {
-        const event: WsEvent = JSON.parse(evt.data);
-        dispatch({ type: "EVENT", event });
-      } catch {
-        // Ignore non-JSON messages
-      }
-    };
-
-    ws.onclose = () => {
-      dispatch({ type: "DISCONNECTED" });
-      wsRef.current = null;
-      // Reconnect with exponential backoff
-      reconnectTimer.current = setTimeout(() => {
-        delayRef.current = Math.min(delayRef.current * 2, 30000);
-        connectRef.current?.();
-      }, delayRef.current);
-    };
-
-    ws.onerror = () => {
-      // onclose will fire after this, triggering reconnect
-      ws.close();
-    };
-  };
+  const mountedRef = useRef(false);
+  const closeOnOpenRef = useRef(false);
 
   useEffect(() => {
-    connectRef.current?.();
+    mountedRef.current = true;
+
+    function connect() {
+      if (!mountedRef.current) return;
+      if (
+        wsRef.current?.readyState === WebSocket.OPEN ||
+        wsRef.current?.readyState === WebSocket.CONNECTING
+      )
+        return;
+
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (closeOnOpenRef.current) {
+          closeOnOpenRef.current = false;
+          ws.close();
+          return;
+        }
+        dispatch({ type: "CONNECTED" });
+        delayRef.current = 1000;
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const event: WsEvent = JSON.parse(evt.data);
+          dispatch({ type: "EVENT", event });
+        } catch {
+          // Ignore non-JSON messages
+        }
+      };
+
+      ws.onclose = () => {
+        dispatch({ type: "DISCONNECTED" });
+        wsRef.current = null;
+        if (!mountedRef.current) return;
+        reconnectTimer.current = setTimeout(() => {
+          delayRef.current = Math.min(delayRef.current * 2, 30000);
+          connect();
+        }, delayRef.current);
+      };
+
+      ws.onerror = () => {
+        // Let the browser handle the failure; onclose will trigger reconnect.
+      };
+    }
+
+    connect();
+
     return () => {
+      mountedRef.current = false;
       clearTimeout(reconnectTimer.current);
+      if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+        closeOnOpenRef.current = true;
+        return;
+      }
       wsRef.current?.close();
     };
   }, []);

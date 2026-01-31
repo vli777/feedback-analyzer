@@ -64,7 +64,7 @@ html, body, #root {
   width: 100%;
   box-sizing: border-box;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr auto;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
   grid-template-areas:
     "sentiment hourly history"
     "topics user history"

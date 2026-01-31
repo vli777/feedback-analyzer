@@ -45,8 +45,8 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
     ];
 
     return (
-      <div className="h-full w-full flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%" maxHeight={300}>
+      <div className="w-full min-w-0 min-h-[260px] flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={260}>
           <PieChart>
             <Pie
               data={sentimentData}
@@ -77,8 +77,8 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
     }));
 
     return (
-      <div className="h-full w-full flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%" maxHeight={300}>
+      <div className="w-full min-w-0 min-h-[260px] flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={260}>
           <BarChart data={hourData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
@@ -103,8 +103,8 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
     }
 
     return (
-      <div className="h-full w-full flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%" maxHeight={300}>
+      <div className="w-full min-w-0 min-h-[260px] flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={260}>
           <BarChart
             data={sortedTopics}
             layout="vertical"
