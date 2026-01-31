@@ -1,28 +1,52 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from .models import FeedbackRecord, Sentiment
 
 
 def compute_metrics(records: list[FeedbackRecord]):
+    now = datetime.now(timezone.utc)
     sentimentDistribution = {
         "positive": 0,
         "neutral": 0,
         "negative": 0,
     }
 
-    hourBuckets = [0] * 24
     topicCounts = {}
+
+    window_minutes = 60
+    bucket_minutes = 5
+    bucket_count = window_minutes // bucket_minutes
+
+    def _as_utc(dt: datetime) -> datetime:
+        if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+
+    def _floor_bucket(dt: datetime) -> datetime:
+        dt = dt.replace(second=0, microsecond=0)
+        minute_offset = dt.minute % bucket_minutes
+        return dt - timedelta(minutes=minute_offset)
+
+    window_end = _floor_bucket(now)
+    window_start = window_end - timedelta(minutes=(bucket_count - 1) * bucket_minutes)
+
+    buckets = [
+        {"bucket": (window_start + timedelta(minutes=i * bucket_minutes)).strftime("%H:%M"), "count": 0}
+        for i in range(bucket_count)
+    ]
 
     for r in records:
         sentimentDistribution[r.sentiment.value] += 1
-        hourBuckets[r.createdAt.hour] += 1
+        created_at = _as_utc(r.createdAt)
+        if window_start <= created_at <= window_end + timedelta(minutes=bucket_minutes):
+            idx = int((created_at - window_start).total_seconds() // (bucket_minutes * 60))
+            if 0 <= idx < bucket_count:
+                buckets[idx]["count"] += 1
 
         for t in r.keyTopics:
             topicCounts[t] = topicCounts.get(t, 0) + 1
 
-    submissionsByHour = [
-        {"hour": h, "count": c} for h, c in enumerate(hourBuckets)
-    ]
+    submissionsByTime = buckets
 
     topTopics = sorted(
         [{"topic": t, "count": c} for t, c in topicCounts.items()],
@@ -35,7 +59,7 @@ def compute_metrics(records: list[FeedbackRecord]):
 
     return {
         "sentimentDistribution": sentimentDistribution,
-        "submissionsByHour": submissionsByHour,
+        "submissionsByTime": submissionsByTime,
         "topTopics": topTopics,
         "topicTrends": topicTrends,
     }

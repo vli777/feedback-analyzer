@@ -26,21 +26,49 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const { connected, jobs, pendingItems, flushPending } = useEventStream();
   const prevCompletedRef = useRef<Set<string>>(new Set());
+  const userSelectedRef = useRef(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const BUCKET_MINUTES = 5;
+  const WINDOW_MINUTES = 60;
+  const BUCKET_COUNT = WINDOW_MINUTES / BUCKET_MINUTES;
+
+  const floorToBucket = (date: Date) => {
+    const floored = new Date(date);
+    floored.setUTCSeconds(0, 0);
+    floored.setUTCMinutes(floored.getUTCMinutes() - (floored.getUTCMinutes() % BUCKET_MINUTES));
+    return floored;
+  };
+
+  const formatBucket = (date: Date) =>
+    `${date.getUTCHours().toString().padStart(2, "0")}:${date
+      .getUTCMinutes()
+      .toString()
+      .padStart(2, "0")}`;
 
   const loadAll = useCallback(async () => {
     try {
       setError(null);
       const [hist, mets] = await Promise.all([fetchHistory(), fetchMetrics()]);
       setHistory(hist);
-      setMetrics(mets);
-      if (!selected && hist.length > 0) {
+      setMetrics((prev) => {
+        if (!prev) return mets;
+        return {
+          ...mets,
+          submissionsByTime:
+            prev.submissionsByTime.length > 0
+              ? prev.submissionsByTime
+              : mets.submissionsByTime,
+        };
+      });
+      if (!userSelectedRef.current && hist.length > 0) {
         setSelected(hist[0]);
       }
     } catch (err) {
       console.error(err);
       setError("Failed to load data");
     }
-  }, [selected]);
+  }, []);
 
   useEffect(() => {
     loadAll();
@@ -52,6 +80,7 @@ function App() {
 
     setLoading(true);
     setError(null);
+    userSelectedRef.current = false;
 
     try {
       const record = await sendFeedback(trimmed);
@@ -67,6 +96,7 @@ function App() {
   };
 
   const handleSelectHistory = (item: HistoryItem) => {
+    userSelectedRef.current = true;
     setSelected(item);
   };
 
@@ -83,40 +113,78 @@ function App() {
     }));
 
     setHistory((prev) => [...newHistoryItems.reverse(), ...prev]);
+    if (!userSelectedRef.current && newHistoryItems.length > 0) {
+      setSelected(newHistoryItems[0]);
+    }
 
-    // Incrementally update sentiment distribution
+    // Incrementally update sentiment + buckets + top topics
     setMetrics((prev) => {
       if (!prev) return prev;
       const dist = { ...prev.sentimentDistribution };
+      const topicMap = new Map(prev.topTopics.map((t) => [t.topic, t.count]));
+      const now = new Date();
+      const windowEnd = floorToBucket(now);
+      const windowStart = new Date(
+        windowEnd.getTime() - (BUCKET_COUNT - 1) * BUCKET_MINUTES * 60 * 1000
+      );
+      const bucketLabels: string[] =
+        prev.submissionsByTime.length > 0
+          ? prev.submissionsByTime.map((b) => b.bucket)
+          : Array.from({ length: BUCKET_COUNT }, (_, i) =>
+              formatBucket(
+                new Date(
+                  windowStart.getTime() + i * BUCKET_MINUTES * 60 * 1000
+                )
+              )
+            );
+      const bucketMap = new Map(prev.submissionsByTime.map((b) => [b.bucket, b.count]));
+      const updatedBuckets = bucketLabels.map((label) => ({
+        bucket: label,
+        count: bucketMap.get(label) ?? 0,
+      }));
+      const currentBucket = formatBucket(now);
+      const currentIdx = updatedBuckets.findIndex((b) => b.bucket === currentBucket);
+      if (currentIdx >= 0) {
+        updatedBuckets[currentIdx] = {
+          ...updatedBuckets[currentIdx],
+          count: updatedBuckets[currentIdx].count + pendingItems.length,
+        };
+      }
+
       for (const item of pendingItems) {
         dist[item.sentiment] = (dist[item.sentiment] ?? 0) + 1;
+        for (const topic of item.keyTopics ?? []) {
+          topicMap.set(topic, (topicMap.get(topic) ?? 0) + 1);
+        }
       }
-      return { ...prev, sentimentDistribution: dist };
+      const topTopics = Array.from(topicMap.entries())
+        .map(([topic, count]) => ({ topic, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      return {
+        ...prev,
+        sentimentDistribution: dist,
+        submissionsByTime: updatedBuckets,
+        topTopics,
+      };
     });
 
     flushPending();
-  }, [pendingItems, flushPending]);
-
-  // On job.completed, do a full reconciliation from server
-  useEffect(() => {
-    const completedIds = new Set(
-      Object.values(jobs)
-        .filter((j) => j.completed)
-        .map((j) => j.jobId)
-    );
-    const prev = prevCompletedRef.current;
-    let hasNew = false;
-    for (const id of completedIds) {
-      if (!prev.has(id)) {
-        hasNew = true;
-        break;
-      }
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
     }
-    prevCompletedRef.current = completedIds;
-    if (hasNew) {
+    refreshTimerRef.current = setTimeout(() => {
       loadAll();
-    }
-  }, [jobs, loadAll]);
+    }, 1000);
+  }, [pendingItems, flushPending, loadAll]);
+
+  // Preserve server-backed data without wiping live-only updates.
+  useEffect(() => {
+    prevCompletedRef.current = new Set(
+      Object.values(jobs).filter((j) => j.completed).map((j) => j.jobId)
+    );
+  }, [jobs]);
 
   return (
     <main className="dashboard-grid p-6 overflow-hidden">
@@ -130,9 +198,9 @@ function App() {
 
       {/* Row 1 Col 2 */}
       <div className="grid-hourly section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
-        <h3 className="section-title">Submissions by Hour</h3>
+        <h3 className="section-title">Submissions Over Time</h3>
         <div className="flex-1 min-h-0">
-          <MetricsPanel metrics={metrics} type="hourly" />
+          <MetricsPanel metrics={metrics} type="time" />
         </div>
       </div>
 

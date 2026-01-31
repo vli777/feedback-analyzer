@@ -90,17 +90,17 @@ class HistoryItem(BaseModel):
     sentiment: Sentiment
 
 
-class HourCount(BaseModel):
+class TimeBucketCount(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "hour": 14,
+                "bucket": "14:05",
                 "count": 5
             }
         }
     )
 
-    hour: int
+    bucket: str
     count: int
 
 
@@ -144,6 +144,6 @@ class Metrics(BaseModel):
     )
 
     sentimentDistribution: dict[str, int]
-    submissionsByHour: list[HourCount]
+    submissionsByTime: list[TimeBucketCount]
     topTopics: list[TopicCount]
     topicTrends: list[dict]

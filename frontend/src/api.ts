@@ -31,7 +31,7 @@ export interface Metrics {
     neutral: number;
     negative: number;
   };
-  submissionsByHour: { hour: number; count: number }[];
+  submissionsByTime: { bucket: string; count: number }[];
   topTopics: { topic: string; count: number }[];
   topicTrends: Array<{ date: string; [topic: string]: string | number }>;
 }
