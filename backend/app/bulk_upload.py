@@ -2,7 +2,7 @@ import csv
 import io
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from fastapi import HTTPException, UploadFile
@@ -38,9 +38,15 @@ def make_record_id(item: Dict[str, Any]) -> str:
 
 def parse_created_at(value: Any) -> datetime:
     try:
-        return datetime.fromisoformat(str(value))
+        text = str(value)
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
     except Exception:
-        return datetime.utcnow()
+        return datetime.now(timezone.utc)
 
 
 def _parse_json(content: bytes) -> List[Dict[str, Any]]:

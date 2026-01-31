@@ -135,7 +135,7 @@ async def create_feedback(payload: FeedbackCreateRequest):
         keyTopics=analysis["keyTopics"],
         actionRequired=analysis["actionRequired"],
         summary=analysis["summary"],
-        createdAt=datetime.utcnow(),        
+        createdAt=datetime.now(timezone.utc),
     )
 
     append_feedback(record)
@@ -169,7 +169,14 @@ def history():
     (newest first). Each entry includes the ID, summary, timestamp, and sentiment.
     """
     records = read_all_feedback()
-    sorted_records = sorted(records, key=lambda r: r.createdAt, reverse=True)
+
+    def _as_utc(dt: datetime) -> datetime:
+        # Normalize to aware UTC so sorting never mixes naive/aware.
+        if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+
+    sorted_records = sorted(records, key=lambda r: _as_utc(r.createdAt), reverse=True)
     return [
         HistoryItem(
             id=r.id,
