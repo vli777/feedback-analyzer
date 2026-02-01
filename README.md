@@ -2,8 +2,7 @@
 
 An intelligent feedback analysis platform that uses Large Language Models to automatically analyze, categorize, and extract insights from user feedback.
 
-<img width="1315" height="969" alt="image" src="https://github.com/user-attachments/assets/0bbf34b4-a48b-4366-8672-78b668b402bc" />
-
+<img width="1486" height="1054" alt="image" src="https://github.com/user-attachments/assets/88027ffe-1d52-4d8b-ba21-bc901e3e381d" />
 
 ## Features
 
