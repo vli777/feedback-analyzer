@@ -1,6 +1,6 @@
 # Feedback Analyzer
 
-An intelligent feedback analysis platform that uses Large Language Models to automatically analyze, categorize, and extract insights from user feedback.
+An intelligent feedback analysis platform that uses Large Language Models to automatically analyze, categorize, and extract insights from user feedback. A mocked WebSocket event source generates randomized submissions that stream into the dashboard in realtime, while manual input remains decoupled to keep the UI responsive under load. Redis-backed cursor tracking ensures the streaming pipeline can resume safely and deduplicate events by job sequence.
 
 <img width="1315" height="969" alt="image" src="https://github.com/user-attachments/assets/0bbf34b4-a48b-4366-8672-78b668b402bc" />
 
@@ -21,21 +21,25 @@ An intelligent feedback analysis platform that uses Large Language Models to aut
 - FastAPI (Python web framework)
 - LangChain with NVIDIA AI Endpoints
 - Pydantic for structured data validation and LLM outputs
+- WebSocket bridge + event worker pool
+- Redis (cursor store for WS dedup/resume)
 
 **Frontend:**
 - React + TypeScript
 - Vite (build tool)
-- Chart.js for data visualization
+- Recharts for data visualization
 
 ## Architecture Overview
 
-The system follows a straightforward client-server architecture:
+The system follows a straightforward client-server architecture with a realtime event stream:
 
 1. **User submits feedback** via the web interface (single or bulk upload)
 2. **Backend API** receives the feedback and routes it to the LLM analysis pipeline
 3. **LLM processes the text** using Pydantic-based structured outputs to ensure type-safe responses
 4. **Analysis results** are validated, stored, and returned to the client
-5. **Dashboard displays** real-time metrics and visualizations based on analyzed feedback
+5. **WebSocket bridge** streams mocked realtime events into the UI
+6. **Redis cursor store** persists per-job sequence offsets for dedup/resume
+7. **Dashboard displays** realtime metrics and visualizations based on analyzed feedback
 
 ### LLM Integration
 
@@ -65,6 +69,7 @@ The current implementation uses a JSON file-based storage system (`feedback.json
 - Python 3.9+
 - Node.js 16+
 - NVIDIA API Key (for LLM integration)
+- Redis (for WS cursor persistence)
 
 ### Backend Setup
 
@@ -74,6 +79,9 @@ pip install -r requirements.txt
 
 # Set your NVIDIA API key
 export NVIDIA_API_KEY=your_api_key_here
+
+# Start Redis (required for WS cursor store)
+docker run -p 6379:6379 redis
 
 # Run the FastAPI server
 uvicorn app.main:app --reload
