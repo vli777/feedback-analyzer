@@ -10,6 +10,7 @@ import type {
 
 interface State {
   connected: boolean;
+  error: boolean;
   jobs: Record<string, JobProgress>;
   pendingItems: ItemAnalyzedPayload[];
   lastSeqByJob: Record<string, number>;
@@ -17,6 +18,7 @@ interface State {
 
 const initialState: State = {
   connected: false,
+  error: false,
   jobs: {},
   pendingItems: [],
   lastSeqByJob: {},
@@ -27,16 +29,20 @@ const initialState: State = {
 type Action =
   | { type: "CONNECTED" }
   | { type: "DISCONNECTED" }
+  | { type: "ERROR" }
   | { type: "EVENT"; event: WsEvent }
   | { type: "FLUSH_PENDING" };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "CONNECTED":
-      return { ...state, connected: true };
+      return { ...state, connected: true, error: false };
 
     case "DISCONNECTED":
       return { ...state, connected: false };
+
+    case "ERROR":
+      return { ...state, error: true };
 
     case "EVENT": {
       const { event } = action;
@@ -173,6 +179,7 @@ export function useEventStream() {
       };
 
       ws.onerror = () => {
+        dispatch({ type: "ERROR" });
         // Let the browser handle the failure; onclose will trigger reconnect.
       };
     }
@@ -196,6 +203,7 @@ export function useEventStream() {
 
   return {
     connected: state.connected,
+    error: state.error,
     jobs: state.jobs,
     pendingItems: state.pendingItems,
     flushPending,

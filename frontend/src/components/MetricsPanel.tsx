@@ -18,12 +18,26 @@ interface MetricsPanelProps {
   type: "sentiment" | "time" | "topics";
 }
 
-const SENTIMENT_COLORS = ["#22c55e", "#64748b", "#ef4444"];
+const SENTIMENT_COLORS = [
+  "var(--sentiment-positive)",
+  "var(--sentiment-neutral)",
+  "var(--sentiment-negative)",
+];
+const BAR_FILL = "var(--accent-primary)";
+const AXIS_TICK = { fontSize: 11, fill: "var(--text-secondary)" } as const;
+const TOOLTIP_STYLE = {
+  backgroundColor: "var(--bg-secondary)",
+  border: "none",
+  color: "var(--text-primary)",
+  boxShadow: "0 8px 20px rgba(0, 0, 0, 0.14)",
+};
+const TOOLTIP_ITEM_STYLE = { color: "var(--text-primary)" } as const;
+const LEGEND_STYLE = { color: "var(--text-secondary)" } as const;
 
 export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
   if (!metrics) {
     return (
-      <div className="text-sm text-slate-500">
+      <div className="text-sm theme-text-secondary">
         Metrics will appear after you submit some feedback.
       </div>
     );
@@ -73,8 +87,10 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
             <Tooltip
               formatter={(value: number) => [value, "Count"]}
               labelFormatter={(label) => label}
+              contentStyle={TOOLTIP_STYLE}
+              itemStyle={TOOLTIP_ITEM_STYLE}
             />
-            <Legend verticalAlign="bottom" height={36} />
+            <Legend verticalAlign="bottom" height={36} wrapperStyle={LEGEND_STYLE} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -111,18 +127,19 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
       <div className="w-full min-w-0 min-h-[260px] flex items-center justify-center">
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={hourData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-            <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+            <XAxis dataKey="bucket" tick={AXIS_TICK} />
             <YAxis
               allowDecimals={false}
               domain={[0, maxDomainRef.current || paddedMax]}
               tick={{
                 fontSize: 11,
+                fill: "var(--text-secondary)",
                 fontWeight: scaleBump ? 700 : 400,
               }}
             />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="Submissions" fill="#3b82f6" />
+            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+            <Legend wrapperStyle={LEGEND_STYLE} />
+            <Bar dataKey="Submissions" fill={BAR_FILL} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -134,7 +151,7 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
 
     if (sortedTopics.length === 0) {
       return (
-        <div className="text-sm text-slate-500">
+        <div className="text-sm theme-text-secondary">
           Topic trends will appear after you submit some feedback.
         </div>
       );
@@ -148,15 +165,15 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
             layout="vertical"
             margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
           >
-            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+            <XAxis type="number" allowDecimals={false} tick={AXIS_TICK} />
             <YAxis
               type="category"
               dataKey="topic"
-              tick={{ fontSize: 11 }}
+              tick={AXIS_TICK}
               width={100}
             />
-            <Tooltip />
-            <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+            <Bar dataKey="count" fill={BAR_FILL} radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
