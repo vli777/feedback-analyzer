@@ -95,13 +95,19 @@ class TimeBucketCount(BaseModel):
         json_schema_extra={
             "example": {
                 "bucket": "14:05",
-                "count": 5
+                "count": 5,
+                "positive": 2,
+                "neutral": 2,
+                "negative": 1,
             }
         }
     )
 
     bucket: str
     count: int
+    positive: int
+    neutral: int
+    negative: int
 
 
 class TopicCount(BaseModel):

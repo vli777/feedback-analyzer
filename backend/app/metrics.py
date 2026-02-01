@@ -31,7 +31,13 @@ def compute_metrics(records: list[FeedbackRecord]):
     window_start = window_end - timedelta(minutes=(bucket_count - 1) * bucket_minutes)
 
     buckets = [
-        {"bucket": (window_start + timedelta(minutes=i * bucket_minutes)).strftime("%H:%M"), "count": 0}
+        {
+            "bucket": (window_start + timedelta(minutes=i * bucket_minutes)).strftime("%H:%M"),
+            "count": 0,
+            "positive": 0,
+            "neutral": 0,
+            "negative": 0,
+        }
         for i in range(bucket_count)
     ]
 
@@ -42,6 +48,7 @@ def compute_metrics(records: list[FeedbackRecord]):
             idx = int((created_at - window_start).total_seconds() // (bucket_minutes * 60))
             if 0 <= idx < bucket_count:
                 buckets[idx]["count"] += 1
+                buckets[idx][r.sentiment.value] += 1
 
         for t in r.keyTopics:
             topicCounts[t] = topicCounts.get(t, 0) + 1
