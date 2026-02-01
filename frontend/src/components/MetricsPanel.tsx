@@ -90,7 +90,12 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
               contentStyle={TOOLTIP_STYLE}
               itemStyle={TOOLTIP_ITEM_STYLE}
             />
-            <Legend verticalAlign="bottom" height={36} wrapperStyle={LEGEND_STYLE} />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              wrapperStyle={LEGEND_STYLE}
+              wrapperClassName="ui-tag legend-tag"
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -105,12 +110,17 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
       () =>
         metrics.submissionsByTime.map((h) => ({
           bucket: h.bucket,
-          Submissions: h.count,
+          positive: h.positive,
+          neutral: h.neutral,
+          negative: h.negative,
         })),
       [metrics.submissionsByTime]
     );
 
-    const maxCount = hourData.reduce((acc, item) => Math.max(acc, item.Submissions), 0);
+    const maxCount = hourData.reduce(
+      (acc, item) => Math.max(acc, item.positive + item.neutral + item.negative),
+      0
+    );
     const paddedMax = Math.max(5, Math.ceil(maxCount * 1.2));
 
     useEffect(() => {
@@ -139,7 +149,9 @@ export default function MetricsPanel({ metrics, type }: MetricsPanelProps) {
             />
             <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
             <Legend wrapperStyle={LEGEND_STYLE} />
-            <Bar dataKey="Submissions" fill={BAR_FILL} />
+            <Bar dataKey="positive" stackId="sentiment" fill={SENTIMENT_COLORS[0]} />
+            <Bar dataKey="neutral" stackId="sentiment" fill={SENTIMENT_COLORS[1]} />
+            <Bar dataKey="negative" stackId="sentiment" fill={SENTIMENT_COLORS[2]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

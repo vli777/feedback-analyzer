@@ -3,13 +3,12 @@ import type { HistoryItem } from "../api";
 interface HistoryListProps {
   title: string;
   history: HistoryItem[];
-  onSelect: (item: HistoryItem) => void;
 }
 
-export default function HistoryList({ title, history, onSelect }: HistoryListProps) {
+export default function HistoryList({ title, history }: HistoryListProps) {
   return (
-    <aside className="section-card h-full p-3 shadow-sm overflow-auto scrollbar-hidden">
-      <h3 className="section-title">{title}</h3>
+    <aside className="section-card sidebar-panel h-full p-4 shadow-sm overflow-auto scrollbar-hidden">
+      <h3 className="section-title sidebar-title">{title}</h3>
 
       {history.length === 0 ? (
         <p className="text-sm theme-text-secondary">
@@ -20,18 +19,9 @@ export default function HistoryList({ title, history, onSelect }: HistoryListPro
           {history.map((h) => (
             <div
               key={h.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelect(h)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(h);
-                }
-              }}
-              className="flex items-start gap-3 py-2 px-1 transition cursor-pointer theme-row-hover"
+              className="flex items-start gap-3 py-2 px-2 theme-row-hover"
             >
-              <span className="text-xs theme-text-tertiary whitespace-nowrap shrink-0 pt-0.5">
+              <span className="text-[10px] theme-text-tertiary whitespace-nowrap shrink-0 pt-0.5">
                 {new Date(h.createdAt).toLocaleString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -39,7 +29,24 @@ export default function HistoryList({ title, history, onSelect }: HistoryListPro
                   minute: "2-digit",
                 })}
               </span>
-              <p className="text-sm flex-1 line-clamp-2 theme-text-primary">{h.summary}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded-full text-[9px] ui-tag self-start ${
+                      h.sentiment === "positive"
+                        ? "theme-badge-positive"
+                        : h.sentiment === "negative"
+                        ? "theme-badge-negative"
+                        : "theme-badge-neutral"
+                    }`}
+                  >
+                    {h.sentiment}
+                  </span>
+                  <p className="text-xs flex-1 line-clamp-2 theme-text-primary">
+                    {h.summary}
+                  </p>
+                </div>
+              </div>
             </div>
           ))}
         </div>

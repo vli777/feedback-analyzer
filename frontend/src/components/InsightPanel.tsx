@@ -43,7 +43,7 @@ export default function InsightPanel({ record }: InsightPanelProps) {
       <div>
         <p className="font-semibold theme-text-primary mb-1">Sentiment:</p>
         <span
-          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ui-tag ${
             record.sentiment === "positive"
               ? "theme-badge-positive"
               : record.sentiment === "negative"
@@ -60,11 +60,11 @@ export default function InsightPanel({ record }: InsightPanelProps) {
         <div>
           <p className="font-semibold theme-text-primary mb-2">Topics:</p>
           {sortedTopics.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-start">
               {sortedTopics.map((topic) => (
                 <span
                   key={topic}
-                  className="px-3 py-1 rounded-full text-sm theme-chip"
+                  className="px-3 py-1 rounded-full text-sm theme-chip ui-tag"
                 >
                   {topic}
                 </span>
@@ -81,7 +81,7 @@ export default function InsightPanel({ record }: InsightPanelProps) {
         <div>
           <p className="font-semibold theme-text-primary mb-1">Action Required:</p>
           <span
-            className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+            className={`inline-block px-3 py-1 rounded-full text-sm font-medium ui-tag ${
               record.actionRequired ? "theme-badge-accent" : "theme-badge-neutral"
             }`}
           >

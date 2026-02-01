@@ -26,20 +26,20 @@ export default function FeedbackForm({
   return (
     <>
       {title && <h3 className="section-title">{title}</h3>}
-      <div className="flex gap-3 items-center">
+      <div className="flex flex-col gap-3 items-start">
         <textarea
-          className="flex-1 p-4 text-sm resize-none transition-colors theme-input"
+          className="w-full p-3 text-sm resize-none transition-colors theme-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Share your thoughts, suggestions, or report issues..."
-          rows={3}
+          rows={2}
         />
 
         <button
           type="button"
           onClick={() => void handleSubmit()}
           disabled={loading || !text.trim()}
-          className="px-6 py-3 h-fit rounded-md text-sm font-semibold transition-colors shadow-sm hover:shadow-md theme-button"
+          className="px-6 py-3 h-fit rounded-md text-sm font-semibold transition-colors theme-button"
         >
           {loading ? (
             <span className="flex items-center gap-2">

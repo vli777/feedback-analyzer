@@ -21,7 +21,7 @@ export default function StreamProgress({ connected, error, jobs }: StreamProgres
             : "theme-status-offline"
         }`}
       />
-      <span className="text-sm font-medium theme-text-secondary">{label}</span>
+      <span className="text-sm font-medium theme-text-inverse status-tag">{label}</span>
     </div>
   );
 }
