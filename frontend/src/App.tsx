@@ -18,13 +18,12 @@ import "./App.css";
 type InsightRecord = FeedbackRecord | HistoryItem;
 
 function App() {
-  const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [selected, setSelected] = useState<InsightRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { connected, jobs, pendingItems, flushPending } = useEventStream();
+  const { connected, error: streamError, jobs, pendingItems, flushPending } = useEventStream();
   const prevCompletedRef = useRef<Set<string>>(new Set());
   const userSelectedRef = useRef(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,8 +73,8 @@ function App() {
     loadAll();
   }, [loadAll]);
 
-  const handleSubmit = async () => {
-    const trimmed = text.trim();
+  const handleSubmit = async (rawText: string) => {
+    const trimmed = rawText.trim();
     if (!trimmed) return;
 
     setLoading(true);
@@ -85,11 +84,12 @@ function App() {
     try {
       const record = await sendFeedback(trimmed);
       setSelected(record);
-      setText("");
       await loadAll();
+      return true;
     } catch (err) {
       console.error(err);
       setError("Failed to submit feedback");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -187,9 +187,20 @@ function App() {
   }, [jobs]);
 
   return (
-    <main className="dashboard-grid p-6 overflow-hidden">
+    <div className="dashboard-shell">
+      <div className="dashboard-frame">
+        <header className="dashboard-header">
+          <div className="header-left">
+            <img className="logo-mark" src="/vite.svg" alt="Company logo" />
+            <div>
+              <h1 className="header-title">Dashboard Title</h1>
+            </div>
+          </div>
+          <StreamProgress connected={connected} error={streamError} jobs={jobs} />
+        </header>
+        <main className="dashboard-grid p-4 overflow-hidden">
       {/* Row 1 Col 1 */}
-      <div className="grid-sentiment section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
+      <div className="grid-sentiment section-card h-full flex flex-col p-3 shadow-sm min-h-0">
         <h3 className="section-title">Sentiment Distribution</h3>
         <div className="flex-1 min-h-0">
           <MetricsPanel metrics={metrics} type="sentiment" />
@@ -197,7 +208,7 @@ function App() {
       </div>
 
       {/* Row 1 Col 2 */}
-      <div className="grid-hourly section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
+      <div className="grid-hourly section-card h-full flex flex-col p-3 shadow-sm min-h-0">
         <h3 className="section-title">Submissions Over Time</h3>
         <div className="flex-1 min-h-0">
           <MetricsPanel metrics={metrics} type="time" />
@@ -214,7 +225,7 @@ function App() {
       </div>
 
       {/* Row 2 Col 1 */}
-      <div className="grid-topics section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
+      <div className="grid-topics section-card h-full flex flex-col p-3 shadow-sm min-h-0">
         <h3 className="section-title">Top Topics</h3>
         <div className="flex-1 min-h-0 overflow-auto">
           <MetricsPanel metrics={metrics} type="topics" />
@@ -222,7 +233,7 @@ function App() {
       </div>
 
       {/* Row 2 Col 2 */}
-      <div className="grid-user section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
+      <div className="grid-user section-card h-full flex flex-col p-3 shadow-sm min-h-0">
         <h3 className="section-title">User Metrics</h3>
         <div className="flex-1 min-h-0 overflow-auto">
           {selected && <InsightPanel record={selected} />}
@@ -230,21 +241,20 @@ function App() {
       </div>
 
       {/* Row 3 Col 1–2 */}
-      <div className="grid-feedback section-card h-full flex flex-col p-4 rounded-xl shadow-sm min-h-0">
+      <div className="grid-feedback section-card h-full flex flex-col p-3 shadow-sm min-h-0">
         <div className="flex items-center justify-between mb-2">
           <h3 className="section-title mb-0">Submit Feedback</h3>
-          <StreamProgress connected={connected} jobs={jobs} />
         </div>
         <FeedbackForm
           title=""
-          text={text}
-          setText={setText}
           loading={loading}
           error={error}
           onSubmit={handleSubmit}
         />
       </div>
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }
 

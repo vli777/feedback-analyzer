@@ -1,26 +1,34 @@
+import { useState } from "react";
+
 interface FeedbackFormProps {
   title: string;
-  text: string;
-  setText: (value: string) => void;
   loading: boolean;
   error: string | null;
-  onSubmit: () => Promise<void> | void;
+  onSubmit: (text: string) => Promise<boolean> | boolean;
 }
 
 export default function FeedbackForm({
   title,
-  text,
-  setText,
   loading,
   error,
   onSubmit,
 }: FeedbackFormProps) {
+  const [text, setText] = useState("");
+
+  const handleSubmit = async () => {
+    if (!text.trim()) return;
+    const result = await onSubmit(text);
+    if (result) {
+      setText("");
+    }
+  };
+
   return (
     <>
       {title && <h3 className="section-title">{title}</h3>}
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-3 items-center">
         <textarea
-          className="flex-1 border-2 border-slate-200 rounded-lg p-4 text-sm resize-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors placeholder:text-slate-400"
+          className="flex-1 p-4 text-sm resize-none transition-colors theme-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Share your thoughts, suggestions, or report issues..."
@@ -29,9 +37,9 @@ export default function FeedbackForm({
 
         <button
           type="button"
-          onClick={() => void onSubmit()}
+          onClick={() => void handleSubmit()}
           disabled={loading || !text.trim()}
-          className="px-6 py-3 h-fit rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
+          className="px-6 py-3 h-fit rounded-md text-sm font-semibold transition-colors shadow-sm hover:shadow-md theme-button"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -48,8 +56,8 @@ export default function FeedbackForm({
       </div>
 
       {error && (
-        <div className="mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700 text-sm font-medium">{error}</p>
+        <div className="mt-3 px-4 py-2 theme-alert">
+          <p className="text-sm font-medium">{error}</p>
         </div>
       )}
     </>
