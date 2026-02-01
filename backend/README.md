@@ -40,6 +40,15 @@ cd backend
 uvicorn app.main:app --reload
 ```
 
+## Note: For demo purposes, Websocket and Redis services need to be running
+```bash
+# websocket 
+python stub_event_source.py 
+
+# redis (for cursor store)
+docker run -p 6379:6379 redis
+```
+
 The API will be available at `http://localhost:8000`
 
 ## Architecture

@@ -24,10 +24,11 @@ from .metrics import compute_metrics
 from .bulk_upload import parse_bulk_file, parse_created_at, make_record_id
 from .config import (
     BULK_RATE_LIMIT_RPM, BULK_BATCH_SIZE, BULK_MAX_CONCURRENCY,
-    STUB_WS_URL, WS_INBOUND_QUEUE_SIZE, WS_WORKER_COUNT, WS_CURSOR_FILE,
+    STUB_WS_URL, WS_INBOUND_QUEUE_SIZE, WS_WORKER_COUNT,
+    REDIS_HOST, REDIS_PORT, REDIS_DB,
 )
 from .ws_broadcaster import Broadcaster
-from .event_queue import CursorStore, EventWorkerPool
+from .event_queue import RedisCursorStore, EventWorkerPool
 from .ws_bridge import WSBridge
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ def _next_rest_seq() -> int:
 async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────────────
     broadcaster = Broadcaster()
-    cursor_store = CursorStore(WS_CURSOR_FILE)
+    cursor_store = RedisCursorStore(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
     worker_pool = EventWorkerPool(
         broadcaster=broadcaster,
         cursor_store=cursor_store,
@@ -55,7 +56,7 @@ async def lifespan(app: FastAPI):
     )
     bridge = WSBridge(
         inbound_queue=worker_pool.queue,
-        initial_cursors=cursor_store.all_cursors(),
+        initial_cursors=await cursor_store.all_cursors(),
         url=STUB_WS_URL,
     )
 
@@ -73,6 +74,7 @@ async def lifespan(app: FastAPI):
     # ── Shutdown ─────────────────────────────────────────────────────
     await bridge.stop()
     await worker_pool.stop()
+    await cursor_store.aclose()
     logger.info("WS pipeline stopped")
 
 

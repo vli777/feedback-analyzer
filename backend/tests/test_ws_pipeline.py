@@ -5,10 +5,11 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import fakeredis.aioredis
 import pytest
 
 from app.ws_broadcaster import Broadcaster
-from app.event_queue import CursorStore, EventWorkerPool
+from app.event_queue import RedisCursorStore, EventWorkerPool
 
 
 # ── Broadcaster tests ─────────────────────────────────────────────────
@@ -65,51 +66,52 @@ class TestBroadcaster:
         await broadcaster.broadcast({"type": "test"})
 
 
-# ── CursorStore tests ─────────────────────────────────────────────────
+# ── RedisCursorStore tests ────────────────────────────────────────────
 
 class TestCursorStore:
     @pytest.fixture
-    def cursor_file(self, tmp_path):
-        return str(tmp_path / "cursors.json")
+    def cursor_store(self):
+        fake_redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
+        return RedisCursorStore(client=fake_redis)
 
-    def test_get_default_zero(self, cursor_file):
-        store = CursorStore(cursor_file)
-        assert store.get("job1") == 0
+    @pytest.mark.asyncio
+    async def test_get_default_zero(self, cursor_store):
+        assert await cursor_store.get("job1") == 0
 
-    def test_update_and_get(self, cursor_file):
-        store = CursorStore(cursor_file)
-        store.update("job1", 5)
-        assert store.get("job1") == 5
+    @pytest.mark.asyncio
+    async def test_update_and_get(self, cursor_store):
+        await cursor_store.update("job1", 5)
+        assert await cursor_store.get("job1") == 5
 
-    def test_persistence(self, cursor_file):
-        store1 = CursorStore(cursor_file)
-        store1.update("job1", 10)
-        store1.update("job2", 20)
+    @pytest.mark.asyncio
+    async def test_persistence(self, cursor_store):
+        await cursor_store.update("job1", 10)
+        await cursor_store.update("job2", 20)
 
-        # New instance reads from file
-        store2 = CursorStore(cursor_file)
-        assert store2.get("job1") == 10
-        assert store2.get("job2") == 20
+        # Same store (same Redis) sees persisted values
+        assert await cursor_store.get("job1") == 10
+        assert await cursor_store.get("job2") == 20
 
-    def test_all_cursors(self, cursor_file):
-        store = CursorStore(cursor_file)
-        store.update("a", 1)
-        store.update("b", 2)
-        assert store.all_cursors() == {"a": 1, "b": 2}
+    @pytest.mark.asyncio
+    async def test_all_cursors(self, cursor_store):
+        await cursor_store.update("a", 1)
+        await cursor_store.update("b", 2)
+        assert await cursor_store.all_cursors() == {"a": 1, "b": 2}
 
-    def test_corrupt_file_fallback(self, tmp_path):
-        path = tmp_path / "bad.json"
-        path.write_text("not json", encoding="utf-8")
-        store = CursorStore(str(path))
-        assert store.get("anything") == 0
+    @pytest.mark.asyncio
+    async def test_empty_store_returns_empty(self, cursor_store):
+        assert await cursor_store.all_cursors() == {}
 
 
 # ── EventWorkerPool tests ────────────────────────────────────────────
 
 class TestEventWorkerPool:
     @pytest.fixture
-    def cursor_store(self, tmp_path):
-        return CursorStore(str(tmp_path / "cursors.json"))
+    def cursor_store(self):
+        store = AsyncMock()
+        store.get = AsyncMock(return_value=0)
+        store.update = AsyncMock()
+        return store
 
     @pytest.fixture
     def broadcaster(self):
@@ -145,14 +147,14 @@ class TestEventWorkerPool:
         await asyncio.sleep(0.1)
 
         broadcaster.broadcast.assert_awaited()
-        assert cursor_store.get("job1") == 1
+        cursor_store.update.assert_awaited_with("job1", 1)
 
         await pool.stop()
 
     @pytest.mark.asyncio
     async def test_dedup_skips_old_seq(self, broadcaster, cursor_store, mock_storage):
-        # Pre-set cursor so seq=1 is already processed
-        cursor_store.update("job1", 5)
+        # Pre-set cursor so seq=3 is already processed
+        cursor_store.get = AsyncMock(return_value=5)
 
         pool = EventWorkerPool(broadcaster, cursor_store, num_workers=1, queue_size=16)
         await pool.start()
@@ -177,7 +179,7 @@ class TestEventWorkerPool:
 
         broadcaster.broadcast.assert_awaited_once()
         # Cursor still updated
-        assert cursor_store.get("job1") == 1
+        cursor_store.update.assert_awaited_with("job1", 1)
 
         # Storage should not have been called for job.started
         storage_data = json.loads(mock_storage.read_text())

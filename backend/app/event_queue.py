@@ -6,11 +6,11 @@ processed (persisted + broadcast), and cursors are stored for resume.
 """
 
 import asyncio
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
+
+import redis.asyncio as aioredis
 
 from .models import FeedbackRecord, Sentiment
 from .storage import append_feedback
@@ -18,42 +18,31 @@ from .ws_broadcaster import Broadcaster
 
 logger = logging.getLogger(__name__)
 
+CURSOR_HASH_KEY = "ws:cursors"
 
-class CursorStore:
-    """Persists last-processed sequence number per job to a JSON file."""
 
-    def __init__(self, path: str):
-        self._path = Path(path)
-        self._cursors: dict[str, int] = {}
-        self._load()
+class RedisCursorStore:
+    """Persists last-processed sequence number per job in a Redis hash."""
 
-    def _load(self):
-        try:
-            if self._path.exists():
-                data = json.loads(self._path.read_text(encoding="utf-8"))
-                self._cursors = {str(k): int(v) for k, v in data.items()}
-        except Exception as e:
-            logger.warning("Failed to load cursor file: %s", e)
-            self._cursors = {}
+    def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0,
+                 client: aioredis.Redis | None = None):
+        self._redis: aioredis.Redis = client or aioredis.Redis(
+            host=host, port=port, db=db, decode_responses=True,
+        )
 
-    def _save(self):
-        try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            self._path.write_text(
-                json.dumps(self._cursors, indent=2), encoding="utf-8"
-            )
-        except Exception as e:
-            logger.warning("Failed to save cursor file: %s", e)
+    async def get(self, job_id: str) -> int:
+        val = await self._redis.hget(CURSOR_HASH_KEY, job_id)
+        return int(val) if val is not None else 0
 
-    def get(self, job_id: str) -> int:
-        return self._cursors.get(job_id, 0)
+    async def update(self, job_id: str, seq: int) -> None:
+        await self._redis.hset(CURSOR_HASH_KEY, job_id, seq)
 
-    def update(self, job_id: str, seq: int):
-        self._cursors[job_id] = seq
-        self._save()
+    async def all_cursors(self) -> dict[str, int]:
+        data = await self._redis.hgetall(CURSOR_HASH_KEY)
+        return {str(k): int(v) for k, v in data.items()}
 
-    def all_cursors(self) -> dict[str, int]:
-        return dict(self._cursors)
+    async def aclose(self) -> None:
+        await self._redis.aclose()
 
 
 class EventWorkerPool:
@@ -65,7 +54,7 @@ class EventWorkerPool:
     def __init__(
         self,
         broadcaster: Broadcaster,
-        cursor_store: CursorStore,
+        cursor_store: RedisCursorStore,
         num_workers: int = 2,
         queue_size: int = 256,
     ):
@@ -105,7 +94,7 @@ class EventWorkerPool:
         event_type = event.get("type", "")
 
         # Dedup check
-        cursor = self.cursor_store.get(job_id)
+        cursor = await self.cursor_store.get(job_id)
         if seq <= cursor:
             logger.debug("Worker %d: skipping duplicate seq=%d for job=%s", worker_id, seq, job_id)
             return
@@ -135,5 +124,5 @@ class EventWorkerPool:
                 logger.error("Worker %d: failed to persist item seq=%d: %s", worker_id, seq, e)
 
         # Update cursor and broadcast for all event types
-        self.cursor_store.update(job_id, seq)
+        await self.cursor_store.update(job_id, seq)
         await self.broadcaster.broadcast(event)
